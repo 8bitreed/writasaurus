@@ -39,8 +39,8 @@ build. Formatting is configured for 100-column lines, semicolons, and double quo
 
 Writasaurus is a local-first manuscript editor with one application core and two launch modes:
 
-- `src/main.ts` is the normal HTTP entry point. `server.ts` is the Deno Desktop entry point and
-  creates the native browser window through the side-effect import of `src/desktop.ts`.
+- `src/web.server.ts` is the normal HTTP entry point. `src/desktop.server.ts` is the Deno Desktop entry point and
+  creates the native browser window through the side-effect import of `src/desktop/desktop.app.ts`.
 - `src/app.ts` constructs the custom router, loads the asset manifest, installs global CSRF
   middleware, provides the shared route context (`asset`, `isDesktop`, and `json`), and registers
   all feature routes.
@@ -64,7 +64,7 @@ Writasaurus is a local-first manuscript editor with one application core and two
 ## Repository conventions
 
 - Add browser entry files under `src/features/` with a `.client.ts` or `.client.css` suffix.
-  `build.ts` discovers them recursively; do not maintain a manual entry list.
+  `src/bundle.ts` discovers them recursively; do not maintain a manual entry list.
 - Resolve built assets in views with `ctx.asset("features/.../...client.ts")` using the path
   relative to `src/`. Never hard-code generated filenames from `dist/assets/`.
 - Build HTML with the `html` tagged template and compose views with `createView` and `baseLayout`.

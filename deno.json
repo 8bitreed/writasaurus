@@ -1,7 +1,7 @@
 {
   "name": "Writasaurus",
   "version": "0.1.0",
-  "exports": "./server.ts",
+  "exports": "./src/desktop.server.ts",
   "desktop": {
     "app": {
       "name": "Writasaurus",
@@ -35,13 +35,13 @@
     }
   },
   "tasks": {
-    "build": "deno run -A build.ts",
-    "check": "deno fmt --check && deno lint && deno check src/main.ts server.ts build.ts src/features/editor/editor.client.ts && deno test --allow-read=dist,tests",
+    "build": "deno run -A src/bundle.ts",
+    "check": "deno fmt --check && deno lint && deno check src/web.server.ts src/desktop.server.ts src/bundle.ts src/features/editor/editor.client.ts && deno test --allow-read=dist,tests",
     "desktop": "deno desktop --allow-env=HOME,XDG_DATA_HOME,LOCALAPPDATA,APPDATA,DENO_SERVE_ADDRESS --allow-net --allow-read --allow-write --allow-run=zenity,osascript,powershell .",
-    "desktop:dev": "deno task build && deno desktop --hmr --allow-env=HOME,XDG_DATA_HOME,LOCALAPPDATA,APPDATA,PORT,DENO_SERVE_ADDRESS --allow-net --allow-read --allow-write --allow-run=zenity,osascript,powershell server.ts",
-    "dev": "deno task build && deno run --allow-env=PORT --allow-net --allow-read=dist --watch=src/,dist/ src/main.ts",
-    "dev:assets": "deno run -A build.ts --watch",
-    "start": "deno run --allow-env=PORT --allow-net --allow-read=dist src/main.ts"
+    "desktop:dev": "deno task build && deno desktop --hmr --allow-env=HOME,XDG_DATA_HOME,LOCALAPPDATA,APPDATA,PORT,DENO_SERVE_ADDRESS --allow-net --allow-read --allow-write --allow-run=zenity,osascript,powershell src/desktop.server.ts",
+    "dev": "deno task build && deno run --allow-env=PORT --allow-net --allow-read=dist --watch=src/,dist/ src/web.server.ts",
+    "dev:assets": "deno run -A src/bundle.ts --watch",
+    "start": "deno run --allow-env=PORT --allow-net --allow-read=dist src/web.server.ts"
   },
   "imports": {
     "@std/http": "jsr:@std/http@^1.1.3",

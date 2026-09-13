@@ -1,4 +1,4 @@
-import { bundle } from "./src/framework/bundle/bundle.ts";
+import { bundle } from "./framework/bundle/bundle.ts";
 
 // auto load all css and ts files that end with .client.ts or .client.css
 

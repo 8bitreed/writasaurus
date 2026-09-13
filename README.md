@@ -28,7 +28,7 @@ Desktop development:
 deno task desktop:dev
 ```
 
-This passes `server.ts` explicitly so Desktop uses plain Deno HMR. Restart the task after changing
+This passes `src/desktop.server.ts` explicitly so Desktop uses plain Deno HMR. Restart the task after changing
 client TypeScript or CSS; server handler edits use HMR.
 
 Build the desktop application configured for the current platform:
@@ -65,7 +65,7 @@ character counts. Browsers without direct file access use normal uploads and dow
 
 ## Browser assets
 
-`build.ts` contains an explicit `entries` list for browser TypeScript and CSS and passes it to the
+`src/bundle.ts` contains an explicit `entries` list for browser TypeScript and CSS and passes it to the
 reusable bundler in `src/framework/bundle/bundle.ts`. The bundler also handles Deno's `--watch`
 argument. Add each new client entry to that list; client TypeScript uses the `[name].client.ts`
 convention and can live beside its feature code. `deno task build` bundles each entry, writes a
