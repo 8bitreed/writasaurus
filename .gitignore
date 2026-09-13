@@ -2,3 +2,4 @@
 /desktop
 dist/
 deno.lock
+ignore/
