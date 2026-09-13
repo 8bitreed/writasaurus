@@ -5,7 +5,7 @@ import { EditorSidebar } from "./client/components.ts";
 import { parseManuscript } from "./client/data.ts";
 import { state, syncChapter } from "./client/state.ts";
 import { restoreHandle, restoreLocal, saveLocal, storeHandle } from "./client/storage.ts";
-import { render as renderUi, updateChangedStatus, updateStats } from "./client/ui.ts";
+import { render as renderUi, updateChangedStatus, updateStats, updateStatus } from "./client/ui.ts";
 import { hasWritePermission, saveToDisk } from "./client/fileio.ts";
 import {
   type ActionCallbacks,
@@ -23,13 +23,41 @@ const elements: EditorElements = {
   manuscriptTitle: element<HTMLInputElement>("#manuscript-title"),
   fileInput: element<HTMLInputElement>("#file-input"),
   saveStatus: element("#save-status"),
-  saveButton: element("#save-button"),
+  saveButton: element<HTMLButtonElement>("#save-button"),
 };
 
-function save(): void {
+async function save(): Promise<void> {
+  if (!state.hasUnsavedChanges) return;
   syncChapter(elements.editor);
-  saveLocal(state.manuscript, state.activeChapter);
-  void saveToDisk(elements.editor, elements.saveStatus);
+  saveLocal(state.manuscript, state.activeChapter, state.hasUnsavedChanges);
+  await saveToDisk(elements.editor, elements.saveStatus, false, elements.saveButton);
+  if (!state.hasUnsavedChanges) {
+    elements.saveButton.disabled = true;
+  }
+}
+
+async function quit(): Promise<void> {
+  if (state.hasUnsavedChanges) {
+    const shouldSave = confirm("You have unsaved changes. Do you want to save before closing?");
+    if (shouldSave) {
+      await save();
+      if (state.hasUnsavedChanges) {
+        return;
+      }
+    }
+  }
+  if (state.isDesktop) {
+    try {
+      await fetch("/api/editor/exit", {
+        method: "POST",
+        headers: { origin: globalThis.location.origin },
+      });
+    } catch {
+      // ignore
+    }
+  } else {
+    globalThis.close();
+  }
 }
 
 function render(): void {
@@ -44,17 +72,22 @@ function render(): void {
 
 const actionCallbacks: ActionCallbacks = {
   render,
-  onChanged: () => updateChangedStatus(elements.saveStatus),
+  onChanged: () => {
+    state.hasUnsavedChanges = true;
+    updateChangedStatus(elements.saveStatus, elements.saveButton);
+  },
   onLoaded: (filename) => {
-    elements.saveStatus.textContent = "";
+    state.hasUnsavedChanges = false;
+    updateStatus(elements.saveStatus, filename, elements.saveButton);
     element("#filename").textContent = filename;
   },
 };
 
 function changed(): void {
   syncChapter(elements.editor);
-  saveLocal(state.manuscript, state.activeChapter);
-  updateChangedStatus(elements.saveStatus);
+  state.hasUnsavedChanges = true;
+  saveLocal(state.manuscript, state.activeChapter, state.hasUnsavedChanges);
+  updateChangedStatus(elements.saveStatus, elements.saveButton);
   updateStats(state.manuscript, state.activeChapter);
 }
 
@@ -134,12 +167,12 @@ globalThis.addEventListener("keydown", (event) => {
   }
 });
 
-elements.saveButton?.addEventListener("click", () => {
-  save();
+elements.saveButton.addEventListener("click", () => {
+  void save();
 });
 
 element("#save-file")?.addEventListener("click", () => {
-  save();
+  void save();
 });
 
 elements.fileInput.addEventListener("change", () => {
@@ -151,7 +184,7 @@ elements.fileInput.addEventListener("change", () => {
 globalThis.addEventListener("keydown", (event) => {
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
     event.preventDefault();
-    save();
+    void save();
   }
 });
 
@@ -168,6 +201,7 @@ declare global {
     open?: () => void;
     settings?: () => void;
     about?: () => void;
+    quit?: () => Promise<void>;
   } | undefined;
 }
 
@@ -182,7 +216,15 @@ globalThis.writasaurus = {
   about: () => {
     globalThis.location.href = "/about";
   },
+  quit: () => quit(),
 };
+
+globalThis.addEventListener("beforeunload", (event) => {
+  if (state.hasUnsavedChanges) {
+    event.preventDefault();
+    event.returnValue = "";
+  }
+});
 
 globalThis.addEventListener("dragover", (event) => event.preventDefault());
 globalThis.addEventListener("drop", (event) => {
@@ -198,6 +240,15 @@ const saved = restoreLocal();
 if (saved) {
   state.manuscript = saved.manuscript;
   state.activeChapter = saved.activeChapter;
+  state.hasUnsavedChanges = Boolean(saved.hasUnsavedChanges);
+  if (state.hasUnsavedChanges) {
+    updateChangedStatus(elements.saveStatus, elements.saveButton);
+  } else {
+    updateStatus(elements.saveStatus, state.manuscript.filename, elements.saveButton);
+  }
+} else {
+  state.hasUnsavedChanges = false;
+  updateStatus(elements.saveStatus, undefined, elements.saveButton);
 }
 
 state.fileHandle = await restoreHandle();
@@ -227,11 +278,17 @@ try {
       state.fileHandle = null;
       state.canWrite = false;
       elements.saveStatus.textContent = `Active file: ${status.activeFile}`;
-      saveLocal(state.manuscript, state.activeChapter);
+      elements.saveStatus.className = "saved";
+      state.hasUnsavedChanges = false;
+      elements.saveButton.disabled = true;
+      saveLocal(state.manuscript, state.activeChapter, state.hasUnsavedChanges);
     } else if (state.desktopFileLoaded && status.activeFile) {
       state.manuscript.filename = status.activeFile;
       element("#filename").textContent = status.activeFile;
       elements.saveStatus.textContent = `Active file: ${status.activeFile}`;
+      elements.saveStatus.className = "saved";
+      state.hasUnsavedChanges = false;
+      elements.saveButton.disabled = true;
     }
   }
 } catch {

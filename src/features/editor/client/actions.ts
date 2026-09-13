@@ -19,8 +19,9 @@ export async function loadFile(
   state.activeChapter = 0;
   state.fileHandle = handle;
   state.canWrite = writable;
+  state.hasUnsavedChanges = false;
   await storeHandle(handle);
-  saveLocal(state.manuscript, state.activeChapter);
+  saveLocal(state.manuscript, state.activeChapter, state.hasUnsavedChanges);
   if (callbacks) {
     callbacks.render();
     callbacks.onLoaded?.(file.name);
@@ -34,9 +35,10 @@ export function newManuscript(callbacks: ActionCallbacks): void {
   state.fileHandle = null;
   state.canWrite = false;
   state.desktopFileLoaded = false;
+  state.hasUnsavedChanges = false;
   if (state.isDesktop) void fetch("/api/editor/close", { method: "POST" });
   void storeHandle(null);
-  saveLocal(state.manuscript, state.activeChapter);
+  saveLocal(state.manuscript, state.activeChapter, state.hasUnsavedChanges);
   callbacks.render();
   callbacks.onLoaded?.(state.manuscript.filename);
 }
@@ -50,9 +52,10 @@ export function loadSample(callbacks: ActionCallbacks): void {
   state.fileHandle = null;
   state.canWrite = false;
   state.desktopFileLoaded = false;
+  state.hasUnsavedChanges = true;
   if (state.isDesktop) void fetch("/api/editor/close", { method: "POST" });
   void storeHandle(null);
-  saveLocal(state.manuscript, state.activeChapter);
+  saveLocal(state.manuscript, state.activeChapter, state.hasUnsavedChanges);
   callbacks.render();
   callbacks.onChanged?.();
 }
@@ -67,7 +70,8 @@ export function addChapter(
     chapter(`Chapter ${state.manuscript.chapters.length + 1}: Untitled`, "<p></p>"),
   );
   state.activeChapter = state.manuscript.chapters.length - 1;
-  saveLocal(state.manuscript, state.activeChapter);
+  state.hasUnsavedChanges = true;
+  saveLocal(state.manuscript, state.activeChapter, state.hasUnsavedChanges);
   callbacks.render();
   callbacks.onChanged?.();
   chapterTitle.select();
@@ -91,7 +95,8 @@ export function deleteChapter(
   } else if (index === state.activeChapter) {
     state.activeChapter = Math.min(state.activeChapter, state.manuscript.chapters.length - 1);
   }
-  saveLocal(state.manuscript, state.activeChapter);
+  state.hasUnsavedChanges = true;
+  saveLocal(state.manuscript, state.activeChapter, state.hasUnsavedChanges);
   callbacks.render();
   callbacks.onChanged?.();
 }
@@ -105,7 +110,7 @@ export function selectChapter(
   if (index === state.activeChapter) return;
   syncChapter(editor);
   state.activeChapter = index;
-  saveLocal(state.manuscript, state.activeChapter);
+  saveLocal(state.manuscript, state.activeChapter, state.hasUnsavedChanges);
   callbacks.render();
   if (matchMedia("(max-width: 55rem)").matches) sidebar.classList.add("collapsed");
 }

@@ -101,5 +101,13 @@ export const editorRoutes = (router: Router): Router => {
     return ctx.json({ ok: true });
   });
 
+  router.post("/api/editor/exit", async (_req, ctx) => {
+    const desktop = await checkIsDesktop();
+    if (desktop) {
+      setTimeout(() => Deno.exit(0), 50);
+    }
+    return ctx.json({ ok: true });
+  });
+
   return router;
 };

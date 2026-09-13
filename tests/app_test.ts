@@ -18,6 +18,7 @@ Deno.test("renders editor on root route with its registered asset entries", asyn
   assert(page.includes("<editor-statusbar"));
   assert(page.includes('id="chapter-list"'));
   assert(page.includes('id="save-button"'));
+  assert(page.includes("disabled>Save</button>"));
   assert(page.includes('contenteditable="true"'));
   assert(page.includes('href="/about"'));
   assert(page.includes('href="/settings"'));
@@ -90,6 +91,8 @@ Deno.test("stylesheets include view transition rules for smooth page fades", asy
   assert(cssRes.status === 200);
   const css = await cssRes.text();
   assert(css.includes("view-transition"));
+  assert(css.includes(":active"));
+  assert(css.includes(":disabled"));
 });
 
 Deno.test("returns 404 for missing routes and protected manifest", async () => {

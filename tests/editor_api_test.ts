@@ -78,6 +78,17 @@ Deno.test("editor-api: save returns 204 if no file chosen", async () => {
   assertEquals(res.status, 204);
 });
 
+Deno.test("editor-api: exit responds with ok", async () => {
+  const app = await createApp();
+  const res = await app.request("/api/editor/exit", {
+    method: "POST",
+    headers: { origin: "http://localhost" },
+  });
+  assertEquals(res.status, 200);
+  const data = await res.json();
+  assertEquals(data.ok, true);
+});
+
 Deno.test("editor-api: open returns 204 if no file chosen", async () => {
   const app = await createApp();
   const res = await app.request("/api/editor/open", {

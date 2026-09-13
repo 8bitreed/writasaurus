@@ -31,5 +31,5 @@ export interface EditorElements {
   manuscriptTitle: HTMLInputElement;
   fileInput: HTMLInputElement;
   saveStatus: HTMLElement;
-  saveButton?: HTMLElement;
+  saveButton: HTMLButtonElement;
 }

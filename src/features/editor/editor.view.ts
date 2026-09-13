@@ -19,13 +19,12 @@ export const editorView = createView((ctx, props: Props) => {
         <div class="topbar-left">
           <button type="button" id="sidebar-toggle" aria-label="Toggle chapters">Chapters</button>
           <button type="button" id="save-button" class="primary"
-            aria-label="Save manuscript">Save</button>
+            aria-label="Save manuscript" disabled>Save</button>
         </div>
         <div class="topbar-center">
           <input id="manuscript-title" value="Untitled Manuscript" aria-label="Manuscript title"
             placeholder="Untitled Manuscript">
           <span id="filename">manuscript.md</span>
-          <span id="save-status"></span>
         </div>
         <strong id="chapter-breadcrumb" hidden>Chapter 1</strong>
         <div class="topbar-right">
@@ -78,7 +77,10 @@ export const editorView = createView((ctx, props: Props) => {
 
       <editor-statusbar class="editor-statusbar">
         <span id="chapter-stats">Chapter: 0 words</span>
-        <span id="total-stats">Manuscript: 0 words</span>
+        <div class="statusbar-right">
+          <span id="total-stats">Manuscript: 0 words</span>
+          <span id="save-status"></span>
+        </div>
       </editor-statusbar>
     `,
   });

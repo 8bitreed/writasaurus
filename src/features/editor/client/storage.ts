@@ -37,16 +37,23 @@ export async function restoreHandle(): Promise<WritableFileHandle | null> {
   }
 }
 
-export function saveLocal(manuscript: Manuscript, activeChapter: number): void {
+export function saveLocal(
+  manuscript: Manuscript,
+  activeChapter: number,
+  hasUnsavedChanges = false,
+): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ manuscript, activeChapter }));
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ manuscript, activeChapter, hasUnsavedChanges }),
+    );
   } catch (error) {
     console.warn("Could not save manuscript to local storage.", error);
   }
 }
 
 export function restoreLocal():
-  | { manuscript: Manuscript; activeChapter: number }
+  | { manuscript: Manuscript; activeChapter: number; hasUnsavedChanges?: boolean }
   | null {
   try {
     const saved = localStorage.getItem(STORAGE_KEY) ??
@@ -60,6 +67,7 @@ export function restoreLocal():
           Number(state.activeChapter) || 0,
           state.manuscript.chapters.length - 1,
         ),
+        hasUnsavedChanges: Boolean(state.hasUnsavedChanges),
       };
     }
   } catch (error) {

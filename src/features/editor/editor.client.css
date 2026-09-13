@@ -43,7 +43,8 @@ editor-statusbar {
   align-items: center;
   display: flex;
   flex: 1 1 auto;
-  gap: 0.75rem;
+  flex-direction: column;
+  gap: 0.15rem;
   justify-content: center;
   min-width: 0;
   text-align: center;
@@ -72,6 +73,33 @@ editor-statusbar {
 .editor-topbar .button.primary {
   background: var(--accent);
   color: var(--accent-text);
+}
+
+.editor-topbar button:active:not(:disabled),
+.editor-topbar .button:active:not(.disabled),
+.sidebar-heading button:active:not(:disabled),
+.editor-toolbar button:active:not(:disabled) {
+  background: var(--surface-sunken);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
+  transform: translateY(1px) scale(0.98);
+}
+
+.editor-topbar button.primary:active:not(:disabled),
+.editor-topbar .button.primary:active:not(.disabled) {
+  background: var(--accent);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.25);
+  filter: brightness(0.85);
+  transform: translateY(1px) scale(0.98);
+}
+
+.editor-topbar button:disabled,
+.editor-topbar .button:disabled,
+.sidebar-heading button:disabled,
+.editor-toolbar button:disabled {
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.45;
+  transform: none;
 }
 
 .menu-toggle {
@@ -154,6 +182,12 @@ editor-statusbar {
   outline: none;
 }
 
+.menu-item:active {
+  background: var(--surface-sunken);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
+  transform: translateY(1px) scale(0.99);
+}
+
 .menu-item.primary {
   font-weight: 600;
 }
@@ -172,18 +206,52 @@ editor-statusbar {
 }
 
 #manuscript-title {
-  flex: 1 1 auto;
-  font-size: 1.15rem;
-  font-weight: 700;
+  flex: 0 1 auto;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.2;
   max-width: 24rem;
   min-width: 8rem;
+  padding: 0;
   text-align: center;
 }
 
-#filename,
-#save-status {
+#filename {
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+
+.statusbar-right {
+  align-items: center;
+  display: flex;
+}
+
+#save-status {
+  align-items: center;
+  display: inline-flex;
+}
+
+#save-status:not(:empty) {
+  margin-left: 0.75rem;
+}
+
+#save-status:not(:empty)::before {
+  border-radius: 50%;
+  content: "";
+  display: inline-block;
+  flex-shrink: 0;
+  height: 0.5rem;
+  margin-right: 0.35rem;
+  width: 0.5rem;
+}
+
+#save-status.saved::before {
+  background-color: #22c55e;
+}
+
+#save-status.unsaved::before {
+  background-color: #ef4444;
 }
 
 .editor-main {
@@ -277,6 +345,19 @@ editor-sidebar {
   padding: 0.2rem 0.35rem;
 }
 
+.chapter-item button:active:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+  transform: translateY(1px) scale(0.96);
+}
+
+.chapter-item button:disabled {
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.35;
+  transform: none;
+}
+
 .writing-area {
   display: grid;
   grid-template-rows: auto auto 1fr;
@@ -337,8 +418,7 @@ editor-canvas > * + * {
   }
 
   .editor-topbar > strong,
-  #filename,
-  #save-status {
+  #filename {
     display: none;
   }
 
@@ -375,7 +455,7 @@ editor-canvas > * + * {
   }
 
   #manuscript-title {
-    font-size: 1rem;
+    font-size: 0.85rem;
     max-width: none;
   }
 

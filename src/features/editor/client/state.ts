@@ -8,6 +8,7 @@ export interface EditorState {
   canWrite: boolean;
   isDesktop: boolean;
   desktopFileLoaded: boolean;
+  hasUnsavedChanges: boolean;
 }
 
 export const state: EditorState = {
@@ -17,6 +18,7 @@ export const state: EditorState = {
   canWrite: false,
   isDesktop: false,
   desktopFileLoaded: false,
+  hasUnsavedChanges: false,
 };
 
 export function syncChapter(editor: HTMLElement): void {

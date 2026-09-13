@@ -58,18 +58,18 @@ if (desktop.BrowserWindow) {
   });
   win.addEventListener?.("menuclick", (e) => {
     const id = e.detail?.id;
-    if (id === "quit") {
-      Deno.exit(0);
-    }
     const calls: Record<string, string> = {
       "save-file": "globalThis.writasaurus?.save()",
       "open-file": "globalThis.writasaurus?.open()",
       "settings":
         "globalThis.writasaurus?.settings?.() ?? (globalThis.location.href = '/settings')",
       "about": "globalThis.writasaurus?.about?.() ?? (globalThis.location.href = '/about')",
+      "quit": "globalThis.writasaurus?.quit?.()",
     };
     if (id && calls[id]) {
       win.executeJs?.(calls[id]);
+    } else if (id === "quit") {
+      Deno.exit(0);
     }
   });
 }
