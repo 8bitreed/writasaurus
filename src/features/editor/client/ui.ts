@@ -1,5 +1,5 @@
 import { element } from "../../../lib/utilties/dom-utilities.ts";
-import type { EditorElements, Manuscript, WritableFileHandle } from "./types.ts";
+import type { EditorElements, Manuscript } from "./types.ts";
 
 export function render(
   manuscript: Manuscript,
@@ -55,12 +55,9 @@ export function updateStats(manuscript: Manuscript, activeChapter: number): void
 
 export function updateStatus(
   saveStatus: HTMLElement,
-  fileHandle: WritableFileHandle | null,
-  canWrite: boolean,
+  filename?: string,
 ): void {
-  saveStatus.textContent = fileHandle && canWrite
-    ? `Saved in app · syncing ${fileHandle.name}`
-    : "Saved in app only";
+  saveStatus.textContent = filename ? `Saved to ${filename}` : "Saved";
 }
 
 export function updateChangedStatus(saveStatus: HTMLElement): void {

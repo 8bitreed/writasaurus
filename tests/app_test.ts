@@ -17,8 +17,10 @@ Deno.test("renders editor on root route with its registered asset entries", asyn
   assert(!page.includes("<editor-modal"));
   assert(page.includes("<editor-statusbar"));
   assert(page.includes('id="chapter-list"'));
+  assert(page.includes('id="save-button"'));
   assert(page.includes('contenteditable="true"'));
   assert(page.includes('href="/about"'));
+  assert(page.includes('href="/settings"'));
   assert(page.includes('href="/open"'));
   assert(!page.includes("app.js"));
   assert(page.includes("/assets/features-editor-editor.client-"));
@@ -58,6 +60,24 @@ Deno.test("renders about page with description and return to editor link", async
   assert(page.includes('href="/"'));
   assert(page.includes("Return to Editor"));
   assert(page.includes("/assets/features-about-about.client-"));
+  assert(page.includes(".css"));
+});
+
+Deno.test("renders settings page with font options and return to editor link", async () => {
+  const response = await app.request("/settings");
+  assert(response.status === 200);
+  const page = await response.text();
+  assert(page.includes("Settings"));
+  assert(page.includes("Writasaurus"));
+  assert(page.includes("Editor Font"));
+  assert(page.includes("System Font"));
+  assert(page.includes("Standard Serif"));
+  assert(page.includes("Standard Sans-Serif"));
+  assert(page.includes('href="/"'));
+  assert(page.includes("Return to Editor"));
+  assert(page.includes("/assets/features-settings-settings.client-"));
+  assert(page.includes(".js"));
+  assert(page.includes("/assets/features-settings-settings.client-"));
   assert(page.includes(".css"));
 });
 

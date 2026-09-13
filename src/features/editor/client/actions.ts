@@ -1,11 +1,12 @@
 import type { WritableFileHandle } from "./types.ts";
 import { blankManuscript, chapter, parseManuscript, SAMPLE_NOVEL } from "./data.ts";
-import { storeHandle } from "./storage.ts";
+import { saveLocal, storeHandle } from "./storage.ts";
 import { state, syncChapter } from "./state.ts";
 
 export interface ActionCallbacks {
   render: () => void;
-  saveLocal: () => void;
+  onChanged?: () => void;
+  onLoaded?: (filename: string) => void;
 }
 
 export async function loadFile(
@@ -19,9 +20,10 @@ export async function loadFile(
   state.fileHandle = handle;
   state.canWrite = writable;
   await storeHandle(handle);
+  saveLocal(state.manuscript, state.activeChapter);
   if (callbacks) {
     callbacks.render();
-    callbacks.saveLocal();
+    callbacks.onLoaded?.(file.name);
   }
 }
 
@@ -34,8 +36,9 @@ export function newManuscript(callbacks: ActionCallbacks): void {
   state.desktopFileLoaded = false;
   if (state.isDesktop) void fetch("/api/editor/close", { method: "POST" });
   void storeHandle(null);
+  saveLocal(state.manuscript, state.activeChapter);
   callbacks.render();
-  callbacks.saveLocal();
+  callbacks.onLoaded?.(state.manuscript.filename);
 }
 
 export function loadSample(callbacks: ActionCallbacks): void {
@@ -49,8 +52,9 @@ export function loadSample(callbacks: ActionCallbacks): void {
   state.desktopFileLoaded = false;
   if (state.isDesktop) void fetch("/api/editor/close", { method: "POST" });
   void storeHandle(null);
+  saveLocal(state.manuscript, state.activeChapter);
   callbacks.render();
-  callbacks.saveLocal();
+  callbacks.onChanged?.();
 }
 
 export function addChapter(
@@ -63,8 +67,9 @@ export function addChapter(
     chapter(`Chapter ${state.manuscript.chapters.length + 1}: Untitled`, "<p></p>"),
   );
   state.activeChapter = state.manuscript.chapters.length - 1;
+  saveLocal(state.manuscript, state.activeChapter);
   callbacks.render();
-  callbacks.saveLocal();
+  callbacks.onChanged?.();
   chapterTitle.select();
 }
 
@@ -86,8 +91,9 @@ export function deleteChapter(
   } else if (index === state.activeChapter) {
     state.activeChapter = Math.min(state.activeChapter, state.manuscript.chapters.length - 1);
   }
+  saveLocal(state.manuscript, state.activeChapter);
   callbacks.render();
-  callbacks.saveLocal();
+  callbacks.onChanged?.();
 }
 
 export function selectChapter(
@@ -99,7 +105,7 @@ export function selectChapter(
   if (index === state.activeChapter) return;
   syncChapter(editor);
   state.activeChapter = index;
+  saveLocal(state.manuscript, state.activeChapter);
   callbacks.render();
-  callbacks.saveLocal();
   if (matchMedia("(max-width: 55rem)").matches) sidebar.classList.add("collapsed");
 }

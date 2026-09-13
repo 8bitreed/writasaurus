@@ -20,6 +20,49 @@
   --accent-text: #f7f4ef;
   --danger: #b91c1c;
   font-family: ui-sans-serif, system-ui, sans-serif;
+
+  --font-system: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-georgia: Georgia, "Times New Roman", serif;
+  --font-times: "Times New Roman", Times, Georgia, serif;
+  --font-garamond: Garamond, "Baskerville", "Times New Roman", serif;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-arial: Arial, Helvetica, sans-serif;
+  --font-helvetica: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-verdana: Verdana, Geneva, sans-serif;
+  --font-trebuchet: "Trebuchet MS", "Lucida Sans Unicode", sans-serif;
+  --editor-font: var(--font-serif);
+}
+
+[data-font="system"] {
+  --editor-font: var(--font-system);
+}
+[data-font="serif"] {
+  --editor-font: var(--font-serif);
+}
+[data-font="georgia"] {
+  --editor-font: var(--font-georgia);
+}
+[data-font="times"] {
+  --editor-font: var(--font-times);
+}
+[data-font="garamond"] {
+  --editor-font: var(--font-garamond);
+}
+[data-font="sans-serif"] {
+  --editor-font: var(--font-sans);
+}
+[data-font="arial"] {
+  --editor-font: var(--font-arial);
+}
+[data-font="helvetica"] {
+  --editor-font: var(--font-helvetica);
+}
+[data-font="verdana"] {
+  --editor-font: var(--font-verdana);
+}
+[data-font="trebuchet"] {
+  --editor-font: var(--font-trebuchet);
 }
 
 @media (prefers-color-scheme: dark) {

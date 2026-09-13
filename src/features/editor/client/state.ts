@@ -8,7 +8,6 @@ export interface EditorState {
   canWrite: boolean;
   isDesktop: boolean;
   desktopFileLoaded: boolean;
-  saveTimer: ReturnType<typeof setTimeout> | undefined;
 }
 
 export const state: EditorState = {
@@ -18,7 +17,6 @@ export const state: EditorState = {
   canWrite: false,
   isDesktop: false,
   desktopFileLoaded: false,
-  saveTimer: undefined,
 };
 
 export function syncChapter(editor: HTMLElement): void {

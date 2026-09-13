@@ -25,6 +25,9 @@ function applicationMenu() {
         items: [
           item("Save", "save-file", "CmdOrCtrl+S"),
           item("Open", "open-file", "CmdOrCtrl+O"),
+          "separator",
+          item("Settings", "settings", "CmdOrCtrl+,"),
+          "separator",
           item("Quit", "quit", "CmdOrCtrl+Q"),
         ],
       },
@@ -33,6 +36,7 @@ function applicationMenu() {
       submenu: {
         label: "Help",
         items: [
+          item("Settings", "settings"),
           "separator",
           item("About", "about"),
         ],
@@ -60,7 +64,9 @@ if (desktop.BrowserWindow) {
     const calls: Record<string, string> = {
       "save-file": "globalThis.writasaurus?.save()",
       "open-file": "globalThis.writasaurus?.open()",
-      "about": "globalThis.writasaurus?.about()",
+      "settings":
+        "globalThis.writasaurus?.settings?.() ?? (globalThis.location.href = '/settings')",
+      "about": "globalThis.writasaurus?.about?.() ?? (globalThis.location.href = '/about')",
     };
     if (id && calls[id]) {
       win.executeJs?.(calls[id]);

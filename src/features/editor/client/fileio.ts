@@ -1,7 +1,7 @@
 import { element } from "../../../lib/utilties/dom-utilities.ts";
 import type { Manuscript, WritableFileHandle } from "./types.ts";
 import { serialize } from "./data.ts";
-import { storeHandle } from "./storage.ts";
+import { saveLocal, storeHandle } from "./storage.ts";
 import { state, syncChapter } from "./state.ts";
 
 const filePicker = globalThis as unknown as {
@@ -26,6 +26,7 @@ export async function writeFile(
   await writable.write(serialize(manuscript));
   await writable.close();
   saveStatus.textContent = `Saved to ${handle.name}`;
+  element("#filename").textContent = handle.name;
 }
 
 export function download(manuscript: Manuscript, saveStatus: HTMLElement): void {
@@ -38,13 +39,12 @@ export function download(manuscript: Manuscript, saveStatus: HTMLElement): void 
   link.click();
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1_000);
-  saveStatus.textContent = `Exported ${manuscript.filename}`;
+  saveStatus.textContent = `Saved to ${manuscript.filename}`;
 }
 
 export async function saveToDisk(
   editor: HTMLElement,
   saveStatus: HTMLElement,
-  saveLocal: () => void,
   saveAs = false,
 ): Promise<void> {
   syncChapter(editor);
@@ -64,13 +64,13 @@ export async function saveToDisk(
       const result = await response.json();
       state.manuscript.filename = result.name;
       state.desktopFileLoaded = true;
-      saveLocal();
+      saveLocal(state.manuscript, state.activeChapter);
       saveStatus.textContent = `Saved to ${result.name}`;
       element("#filename").textContent = result.name;
       return;
     } catch (error) {
       console.error("Desktop save failed:", error);
-      saveStatus.textContent = "Saved in app only · disk save failed";
+      saveStatus.textContent = "Save failed";
     }
   }
 
@@ -79,7 +79,7 @@ export async function saveToDisk(
       state.canWrite = await hasWritePermission(state.fileHandle, true);
       if (state.canWrite) {
         await writeFile(state.fileHandle, state.manuscript, saveStatus);
-        saveLocal();
+        saveLocal(state.manuscript, state.activeChapter);
         return;
       }
     } catch (error) {
@@ -92,6 +92,7 @@ export async function saveToDisk(
 
   if (!filePicker.showSaveFilePicker) {
     download(state.manuscript, saveStatus);
+    saveLocal(state.manuscript, state.activeChapter);
     return;
   }
 
@@ -111,11 +112,12 @@ export async function saveToDisk(
     state.manuscript.filename = handle.name;
     await storeHandle(handle);
     await writeFile(handle, state.manuscript, saveStatus);
-    saveLocal();
+    saveLocal(state.manuscript, state.activeChapter);
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") return;
     console.warn("Native save picker failed; using a download instead.", error);
     download(state.manuscript, saveStatus);
+    saveLocal(state.manuscript, state.activeChapter);
   }
 }
 

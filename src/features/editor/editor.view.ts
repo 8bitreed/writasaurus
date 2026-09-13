@@ -18,12 +18,14 @@ export const editorView = createView((ctx, props: Props) => {
       <header class="editor-topbar">
         <div class="topbar-left">
           <button type="button" id="sidebar-toggle" aria-label="Toggle chapters">Chapters</button>
+          <button type="button" id="save-button" class="primary"
+            aria-label="Save manuscript">Save</button>
         </div>
         <div class="topbar-center">
           <input id="manuscript-title" value="Untitled Manuscript" aria-label="Manuscript title"
             placeholder="Untitled Manuscript">
           <span id="filename">manuscript.md</span>
-          <span id="save-status">Saved locally</span>
+          <span id="save-status"></span>
         </div>
         <strong id="chapter-breadcrumb" hidden>Chapter 1</strong>
         <div class="topbar-right">
@@ -40,6 +42,7 @@ export const editorView = createView((ctx, props: Props) => {
           <button type="button" id="save-file" class="menu-item primary">Save</button>
           <a href="/open" class="menu-item" id="open-file">Open</a>
           <div class="menu-divider"></div>
+          <a href="/settings" class="menu-item" id="settings-link">Settings</a>
           <a href="/about" class="menu-item" id="about-link">About</a>
           <input id="file-input" type="file" accept=".md,.markdown,.txt" hidden>
         </nav>

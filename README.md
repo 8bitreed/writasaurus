@@ -1,7 +1,8 @@
 # Writasaurus
 
-A local-first manuscript editor built with Deno and the deno standard library, with no other dependencies. Deno serves the application, bundles browser TypeScript and CSS, and Deno Desktop packages
-it in a native webview.
+A local-first manuscript editor built with Deno and the deno standard library, with no other
+dependencies. Deno serves the application, bundles browser TypeScript and CSS, and Deno Desktop
+packages it in a native webview.
 
 ## Run
 
@@ -28,8 +29,8 @@ Desktop development:
 deno task desktop:dev
 ```
 
-This passes `src/desktop.server.ts` explicitly so Desktop uses plain Deno HMR. Restart the task after changing
-client TypeScript or CSS; server handler edits use HMR.
+This passes `src/desktop.server.ts` explicitly so Desktop uses plain Deno HMR. Restart the task
+after changing client TypeScript or CSS; server handler edits use HMR.
 
 Build the desktop application configured for the current platform:
 
@@ -59,14 +60,14 @@ deno task check
 
 The editor is the root route (`/`). It stores the active manuscript in localStorage, remembers
 granted file handles in IndexedDB, and integrates with native desktop file dialogs or the File
-System Access API when available. It supports multiple chapters, Markdown import/export,
-drag-and-drop opening, direct saves, Ctrl/Cmd+S, a sample manuscript, and live word, page, and
+System Access API when available. It supports a Save button, Ctrl/Cmd+S saving, multiple chapters,
+Markdown import/export, drag-and-drop opening, a sample manuscript, and live word, page, and
 character counts. Browsers without direct file access use normal uploads and downloads.
 
 ## Browser assets
 
-`src/bundle.ts` contains an explicit `entries` list for browser TypeScript and CSS and passes it to the
-reusable bundler in `src/framework/bundle/bundle.ts`. The bundler also handles Deno's `--watch`
+`src/bundle.ts` contains an explicit `entries` list for browser TypeScript and CSS and passes it to
+the reusable bundler in `src/framework/bundle/bundle.ts`. The bundler also handles Deno's `--watch`
 argument. Add each new client entry to that list; client TypeScript uses the `[name].client.ts`
 convention and can live beside its feature code. `deno task build` bundles each entry, writes a
 content-hashed file to `dist/assets/`, and records its source-relative path in `dist/manifest.json`.

@@ -1,16 +1,12 @@
 import { element } from "../../lib/utilties/dom-utilities.ts";
+import { applyFontPreference, getFontPreference } from "../../lib/settings.ts";
 import type { EditorElements } from "./client/types.ts";
 import { EditorSidebar } from "./client/components.ts";
-import { parseManuscript, serialize } from "./client/data.ts";
+import { parseManuscript } from "./client/data.ts";
 import { state, syncChapter } from "./client/state.ts";
-import {
-  restoreHandle,
-  restoreLocal,
-  saveLocal as saveLocalStorage,
-  storeHandle,
-} from "./client/storage.ts";
-import { render as renderUi, updateChangedStatus, updateStats, updateStatus } from "./client/ui.ts";
-import { hasWritePermission, saveToDisk, writeFile } from "./client/fileio.ts";
+import { restoreHandle, restoreLocal, saveLocal, storeHandle } from "./client/storage.ts";
+import { render as renderUi, updateChangedStatus, updateStats } from "./client/ui.ts";
+import { hasWritePermission, saveToDisk } from "./client/fileio.ts";
 import {
   type ActionCallbacks,
   addChapter,
@@ -27,12 +23,13 @@ const elements: EditorElements = {
   manuscriptTitle: element<HTMLInputElement>("#manuscript-title"),
   fileInput: element<HTMLInputElement>("#file-input"),
   saveStatus: element("#save-status"),
+  saveButton: element("#save-button"),
 };
 
-function saveLocal(): void {
+function save(): void {
   syncChapter(elements.editor);
-  saveLocalStorage(state.manuscript, state.activeChapter);
-  updateStatus(elements.saveStatus, state.fileHandle, state.canWrite);
+  saveLocal(state.manuscript, state.activeChapter);
+  void saveToDisk(elements.editor, elements.saveStatus);
 }
 
 function render(): void {
@@ -47,42 +44,18 @@ function render(): void {
 
 const actionCallbacks: ActionCallbacks = {
   render,
-  saveLocal,
+  onChanged: () => updateChangedStatus(elements.saveStatus),
+  onLoaded: (filename) => {
+    elements.saveStatus.textContent = "";
+    element("#filename").textContent = filename;
+  },
 };
 
 function changed(): void {
   syncChapter(elements.editor);
+  saveLocal(state.manuscript, state.activeChapter);
   updateChangedStatus(elements.saveStatus);
   updateStats(state.manuscript, state.activeChapter);
-  clearTimeout(state.saveTimer);
-  state.saveTimer = setTimeout(() => {
-    saveLocal();
-    if (state.isDesktop && state.desktopFileLoaded) {
-      void fetch("/api/editor/save", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          content: serialize(state.manuscript),
-          filename: state.manuscript.filename,
-          saveAs: false,
-        }),
-      }).then(async (res) => {
-        if (res.ok) {
-          const result = await res.json();
-          elements.saveStatus.textContent = `Saved to ${result.name}`;
-        }
-      }).catch((error) => {
-        console.error("Automatic disk save failed.", error);
-        elements.saveStatus.textContent = "Saved in app only · disk save failed";
-      });
-    } else if (state.fileHandle && state.canWrite) {
-      void writeFile(state.fileHandle, state.manuscript, elements.saveStatus).catch((error) => {
-        state.canWrite = false;
-        console.error("Automatic disk save failed.", error);
-        elements.saveStatus.textContent = "Saved in app only · disk save failed";
-      });
-    }
-  }, 500);
 }
 
 // Event Listeners
@@ -129,16 +102,6 @@ appMenu.addEventListener("click", (event) => {
   }
 });
 
-(globalThis as unknown as Record<string, unknown>).writasaurus = {
-  save: () => void saveToDisk(elements.editor, elements.saveStatus, saveLocal),
-  open: () => {
-    globalThis.location.href = "/open";
-  },
-  about: () => {
-    globalThis.location.href = "/about";
-  },
-};
-
 elements.manuscriptTitle.addEventListener("input", () => {
   state.manuscript.frontmatter.title = elements.manuscriptTitle.value.trim() ||
     "Untitled Manuscript";
@@ -171,8 +134,12 @@ globalThis.addEventListener("keydown", (event) => {
   }
 });
 
-element("#save-file").addEventListener("click", () => {
-  void saveToDisk(elements.editor, elements.saveStatus, saveLocal);
+elements.saveButton?.addEventListener("click", () => {
+  save();
+});
+
+element("#save-file")?.addEventListener("click", () => {
+  save();
 });
 
 elements.fileInput.addEventListener("change", () => {
@@ -184,9 +151,38 @@ elements.fileInput.addEventListener("change", () => {
 globalThis.addEventListener("keydown", (event) => {
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
     event.preventDefault();
-    void saveToDisk(elements.editor, elements.saveStatus, saveLocal);
+    save();
   }
 });
+
+globalThis.addEventListener("keydown", (event) => {
+  if ((event.ctrlKey || event.metaKey) && event.key === ",") {
+    event.preventDefault();
+    globalThis.location.href = "/settings";
+  }
+});
+
+declare global {
+  var writasaurus: {
+    save?: () => void;
+    open?: () => void;
+    settings?: () => void;
+    about?: () => void;
+  } | undefined;
+}
+
+globalThis.writasaurus = {
+  save: () => void save(),
+  open: () => {
+    globalThis.location.href = "/open";
+  },
+  settings: () => {
+    globalThis.location.href = "/settings";
+  },
+  about: () => {
+    globalThis.location.href = "/about";
+  },
+};
 
 globalThis.addEventListener("dragover", (event) => event.preventDefault());
 globalThis.addEventListener("drop", (event) => {
@@ -231,7 +227,7 @@ try {
       state.fileHandle = null;
       state.canWrite = false;
       elements.saveStatus.textContent = `Active file: ${status.activeFile}`;
-      saveLocal();
+      saveLocal(state.manuscript, state.activeChapter);
     } else if (state.desktopFileLoaded && status.activeFile) {
       state.manuscript.filename = status.activeFile;
       element("#filename").textContent = status.activeFile;
@@ -242,13 +238,11 @@ try {
   state.isDesktop = false;
 }
 
+applyFontPreference(getFontPreference());
+
 if (!saved && !state.desktopFileLoaded && !sessionStorage.getItem("writasaurus-skip-welcome")) {
   globalThis.location.replace("/welcome");
 }
 
-if (elements.sidebar instanceof EditorSidebar) {
-  elements.sidebar.collapse();
-} else {
-  elements.sidebar.classList.add("collapsed");
-}
+elements.sidebar.collapse();
 render();

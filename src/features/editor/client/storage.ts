@@ -38,10 +38,16 @@ export async function restoreHandle(): Promise<WritableFileHandle | null> {
 }
 
 export function saveLocal(manuscript: Manuscript, activeChapter: number): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ manuscript, activeChapter }));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ manuscript, activeChapter }));
+  } catch (error) {
+    console.warn("Could not save manuscript to local storage.", error);
+  }
 }
 
-export function restoreLocal(): { manuscript: Manuscript; activeChapter: number } | null {
+export function restoreLocal():
+  | { manuscript: Manuscript; activeChapter: number }
+  | null {
   try {
     const saved = localStorage.getItem(STORAGE_KEY) ??
       localStorage.getItem("writer-tools-manuscript-v1");
