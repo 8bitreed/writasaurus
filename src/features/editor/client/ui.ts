@@ -43,8 +43,8 @@ export function updateStats(manuscript: Manuscript, activeChapter: number): void
   const current = manuscript.chapters[activeChapter];
   const total = manuscript.chapters.reduce((sum, item) => sum + item.wordCount, 0);
   element("#chapter-stats").textContent = `Chapter: ${current?.wordCount ?? 0} words · ${
-    current?.charCount ?? 0
-  } characters`;
+    ((current?.wordCount ?? 0) / 300).toFixed(1)
+  } pages`;
   element("#total-stats").textContent = `Manuscript: ${total.toLocaleString()} words · ${
     (total / 300).toFixed(1)
   } pages`;

@@ -1,6 +1,17 @@
 import { blankManuscript, parseManuscript, SAMPLE_NOVEL } from "../editor/client/data.ts";
 import { openFile } from "../editor/client/fileio.ts";
-import { saveLocal, storeHandle } from "../editor/client/storage.ts";
+import { state } from "../editor/client/state.ts";
+import { saveLocal, setSkipWelcome, storeHandle } from "../editor/client/storage.ts";
+
+try {
+  const statusRes = await fetch("/api/editor/status");
+  if (statusRes.ok) {
+    const status = await statusRes.json();
+    state.isDesktop = status.isDesktop === true;
+  }
+} catch {
+  state.isDesktop = false;
+}
 
 function navigateToEditor(): void {
   globalThis.location.href = "/";
@@ -34,22 +45,33 @@ fileInput?.addEventListener("change", async () => {
   fileInput.value = "";
 });
 
-newButton?.addEventListener("click", () => {
+async function closeActiveDesktopFile(): Promise<void> {
+  if (!state.isDesktop) return;
+  try {
+    await fetch("/api/editor/close", { method: "POST" });
+  } catch (error) {
+    console.warn("Could not clear the previously active file.", error);
+  }
+}
+
+newButton?.addEventListener("click", async () => {
   const title = prompt("Manuscript title:", "My Novel")?.trim() || "Untitled Manuscript";
   const manuscript = blankManuscript(title);
   saveLocal(manuscript, 0);
-  void storeHandle(null);
+  await storeHandle(null);
+  await closeActiveDesktopFile();
   navigateToEditor();
 });
 
-sampleButton?.addEventListener("click", () => {
+sampleButton?.addEventListener("click", async () => {
   const manuscript = parseManuscript(SAMPLE_NOVEL, "the-chroniclers-compass.md");
   saveLocal(manuscript, 0);
-  void storeHandle(null);
+  await storeHandle(null);
+  await closeActiveDesktopFile();
   navigateToEditor();
 });
 
 const returnLink = document.querySelector<HTMLAnchorElement>(".return-link");
 returnLink?.addEventListener("click", () => {
-  sessionStorage.setItem("writasaurus-skip-welcome", "1");
+  setSkipWelcome();
 });

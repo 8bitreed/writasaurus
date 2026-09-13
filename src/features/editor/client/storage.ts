@@ -1,7 +1,19 @@
+import { createStorage } from "../../../lib/clientstorage/clientstorage.ts";
 import type { Manuscript, WritableFileHandle } from "./types.ts";
 
-export const STORAGE_KEY = "writasaurus-manuscript-v1";
 export const HANDLE_KEY = "active-file-handle";
+
+/**
+ * Manuscript state is cached in sessionStorage only. It exists purely to survive
+ * same-tab reloads (e.g. dev watch mode); it is never used to remember a manuscript
+ * across app restarts. Reopening the app always re-reads the active file from disk
+ * (desktop) or asks the user to open a file (browser).
+ */
+const manuscriptStore = createStorage("writasaurus-manuscript-v1:", "sessionStorage");
+const MANUSCRIPT_KEY = "state";
+
+const sessionFlagsStore = createStorage("writasaurus-session:", "sessionStorage");
+const SKIP_WELCOME_KEY = "skip-welcome";
 
 export function database(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -37,41 +49,49 @@ export async function restoreHandle(): Promise<WritableFileHandle | null> {
   }
 }
 
+export interface ManuscriptSessionState {
+  manuscript: Manuscript;
+  activeChapter: number;
+  hasUnsavedChanges?: boolean;
+}
+
 export function saveLocal(
   manuscript: Manuscript,
   activeChapter: number,
   hasUnsavedChanges = false,
 ): void {
-  try {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ manuscript, activeChapter, hasUnsavedChanges }),
-    );
-  } catch (error) {
-    console.warn("Could not save manuscript to local storage.", error);
-  }
+  manuscriptStore.setItem<ManuscriptSessionState>(MANUSCRIPT_KEY, {
+    manuscript,
+    activeChapter,
+    hasUnsavedChanges,
+  });
 }
 
-export function restoreLocal():
-  | { manuscript: Manuscript; activeChapter: number; hasUnsavedChanges?: boolean }
-  | null {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY) ??
-      localStorage.getItem("writer-tools-manuscript-v1");
-    if (!saved) return null;
-    const state = JSON.parse(saved);
-    if (state?.manuscript?.chapters?.length) {
-      return {
-        manuscript: state.manuscript,
-        activeChapter: Math.min(
-          Number(state.activeChapter) || 0,
-          state.manuscript.chapters.length - 1,
-        ),
-        hasUnsavedChanges: Boolean(state.hasUnsavedChanges),
-      };
-    }
-  } catch (error) {
-    console.warn("Could not restore the manuscript.", error);
-  }
-  return null;
+export function restoreLocal(): ManuscriptSessionState | null {
+  const state = manuscriptStore.getItem<ManuscriptSessionState>(MANUSCRIPT_KEY);
+  if (!state?.manuscript?.chapters?.length) return null;
+  return {
+    manuscript: state.manuscript,
+    activeChapter: Math.min(
+      Number(state.activeChapter) || 0,
+      state.manuscript.chapters.length - 1,
+    ),
+    hasUnsavedChanges: Boolean(state.hasUnsavedChanges),
+  };
+}
+
+export function clearLocal(): void {
+  manuscriptStore.removeItem(MANUSCRIPT_KEY);
+}
+
+/**
+ * Set when the user explicitly returns to the editor from the welcome screen, so the
+ * next load doesn't immediately bounce back to /welcome for an empty manuscript.
+ */
+export function setSkipWelcome(): void {
+  sessionFlagsStore.setItem<boolean>(SKIP_WELCOME_KEY, true);
+}
+
+export function shouldSkipWelcome(): boolean {
+  return sessionFlagsStore.getItem<boolean>(SKIP_WELCOME_KEY) === true;
 }

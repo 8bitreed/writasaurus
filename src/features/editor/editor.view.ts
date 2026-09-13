@@ -17,8 +17,7 @@ export const editorView = createView((ctx, props: Props) => {
     content: html`
       <header class="editor-topbar">
         <div class="topbar-left">
-          <button type="button" id="sidebar-toggle" aria-label="Toggle chapters">Chapters</button>
-          <button type="button" id="save-button" class="primary"
+          <button type="button" id="save-button" class="primary small"
             aria-label="Save manuscript" disabled>Save</button>
         </div>
         <div class="topbar-center">
@@ -52,7 +51,7 @@ export const editorView = createView((ctx, props: Props) => {
           <editor-sidebar class="editor-sidebar collapsed" id="editor-sidebar">
             <div class="sidebar-heading">
               <h2>Chapters</h2>
-              <button type="button" id="add-chapter">Add</button>
+              <button type="button" id="add-chapter" class="small">Add</button>
             </div>
             <ol id="chapter-list"></ol>
             <span id="sidebar-stats">1 chapter</span>
@@ -76,9 +75,15 @@ export const editorView = createView((ctx, props: Props) => {
       </main>
 
       <editor-statusbar class="editor-statusbar">
-        <span id="chapter-stats">Chapter: 0 words</span>
+        <button type="button" id="sidebar-toggle" class="small" aria-label="Toggle chapters panel"
+          title="Toggle chapters panel (Ctrl+B)">
+          Chapters <kbd>Ctrl+B</kbd>
+        </button>
         <div class="statusbar-right">
+          <span id="chapter-stats">Chapter: 0 words</span>
+          <span class="stat-divider" aria-hidden="true">|</span>
           <span id="total-stats">Manuscript: 0 words</span>
+          <span class="stat-divider" aria-hidden="true">|</span>
           <span id="save-status"></span>
         </div>
       </editor-statusbar>

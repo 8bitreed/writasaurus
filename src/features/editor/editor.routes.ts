@@ -24,19 +24,23 @@ export const editorRoutes = (router: Router): Router => {
       restoredLastFile = true;
       const lastPath = await loadLastFilePath();
       if (lastPath) {
-        try {
-          const content = await Deno.readTextFile(lastPath);
-          activePath = lastPath;
-          return ctx.json({
-            isDesktop: true,
-            activeFile: basename(activePath),
-            activePath,
-            content,
-          });
-        } catch (error) {
-          console.warn("Could not reopen the last file.", error);
-          await clearLastFilePath();
-        }
+        activePath = lastPath;
+      }
+    }
+
+    if (desktop && activePath) {
+      try {
+        const content = await Deno.readTextFile(activePath);
+        return ctx.json({
+          isDesktop: true,
+          activeFile: basename(activePath),
+          activePath,
+          content,
+        });
+      } catch (error) {
+        console.warn("Could not read the active file.", error);
+        activePath = null;
+        await clearLastFilePath();
       }
     }
 

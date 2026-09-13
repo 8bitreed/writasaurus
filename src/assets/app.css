@@ -205,6 +205,15 @@ h1 {
   color: var(--accent-text);
 }
 
+button.small,
+.button.small {
+  border-radius: 0.3rem;
+  font-size: 0.75rem;
+  gap: 0.3rem;
+  min-height: 1.6rem;
+  padding: 0.25rem 0.55rem;
+}
+
 .not-found {
   min-height: 55vh;
   place-content: center;

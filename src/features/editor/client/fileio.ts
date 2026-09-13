@@ -151,7 +151,6 @@ export async function openFile(
       const file = new File([result.content], result.name);
       state.desktopFileLoaded = true;
       await onLoaded(file, null, false);
-      element("#save-status").textContent = `Opened ${result.name}`;
       return;
     } catch (error) {
       console.error("Desktop open failed:", error);

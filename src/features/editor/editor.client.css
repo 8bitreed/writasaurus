@@ -56,6 +56,7 @@ editor-statusbar {
 
 .editor-topbar button,
 .editor-topbar .button,
+.editor-statusbar button,
 .sidebar-heading button,
 .editor-toolbar button {
   background: transparent;
@@ -77,6 +78,7 @@ editor-statusbar {
 
 .editor-topbar button:active:not(:disabled),
 .editor-topbar .button:active:not(.disabled),
+.editor-statusbar button:active:not(:disabled),
 .sidebar-heading button:active:not(:disabled),
 .editor-toolbar button:active:not(:disabled) {
   background: var(--surface-sunken);
@@ -94,12 +96,34 @@ editor-statusbar {
 
 .editor-topbar button:disabled,
 .editor-topbar .button:disabled,
+.editor-statusbar button:disabled,
 .sidebar-heading button:disabled,
 .editor-toolbar button:disabled {
   box-shadow: none;
   cursor: not-allowed;
   opacity: 0.45;
   transform: none;
+}
+
+.editor-topbar button.small,
+.editor-statusbar button.small,
+.sidebar-heading button.small {
+  align-items: center;
+  border-radius: 0.3rem;
+  display: inline-flex;
+  font-size: 0.72rem;
+  gap: 0.35rem;
+  min-height: 1.6rem;
+  padding: 0.2rem 0.5rem;
+}
+
+.editor-statusbar button.small kbd {
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+  color: var(--muted);
+  font-size: 0.65rem;
+  padding: 0.05rem 0.3rem;
 }
 
 .menu-toggle {
@@ -225,15 +249,17 @@ editor-statusbar {
 .statusbar-right {
   align-items: center;
   display: flex;
+  gap: 0.75rem;
+}
+
+.stat-divider {
+  color: var(--muted);
+  font-size: 0.6rem;
 }
 
 #save-status {
   align-items: center;
   display: inline-flex;
-}
-
-#save-status:not(:empty) {
-  margin-left: 0.75rem;
 }
 
 #save-status:not(:empty)::before {
@@ -417,8 +443,7 @@ editor-canvas > * + * {
     min-height: 2.25rem;
   }
 
-  .editor-topbar > strong,
-  #filename {
+  .editor-topbar > strong {
     display: none;
   }
 

@@ -1,10 +1,21 @@
 import { element } from "../../lib/utilties/dom-utilities.ts";
 import { applyFontPreference, getFontPreference } from "../../lib/settings.ts";
 import type { EditorElements } from "./client/types.ts";
-import { EditorSidebar } from "./client/components.ts";
+// Imported for its side effect of registering the custom elements used on this page
+// (editor-sidebar, editor-canvas, etc.) via customElements.define(). `EditorSidebar` is
+// only referenced as a type below, so a plain named import would be tree-shaken away by
+// the bundler, silently dropping the registration and leaving the elements un-upgraded.
+import "./client/components.ts";
+import type { EditorSidebar } from "./client/components.ts";
 import { parseManuscript } from "./client/data.ts";
 import { state, syncChapter } from "./client/state.ts";
-import { restoreHandle, restoreLocal, saveLocal, storeHandle } from "./client/storage.ts";
+import {
+  restoreHandle,
+  restoreLocal,
+  saveLocal,
+  shouldSkipWelcome,
+  storeHandle,
+} from "./client/storage.ts";
 import { render as renderUi, updateChangedStatus, updateStats, updateStatus } from "./client/ui.ts";
 import { hasWritePermission, saveToDisk } from "./client/fileio.ts";
 import {
@@ -236,70 +247,107 @@ globalThis.addEventListener("drop", (event) => {
 });
 
 // Initialization
-const saved = restoreLocal();
-if (saved) {
-  state.manuscript = saved.manuscript;
-  state.activeChapter = saved.activeChapter;
-  state.hasUnsavedChanges = Boolean(saved.hasUnsavedChanges);
-  if (state.hasUnsavedChanges) {
-    updateChangedStatus(elements.saveStatus, elements.saveButton);
-  } else {
-    updateStatus(elements.saveStatus, state.manuscript.filename, elements.saveButton);
-  }
-} else {
-  state.hasUnsavedChanges = false;
-  updateStatus(elements.saveStatus, undefined, elements.saveButton);
-}
-
-state.fileHandle = await restoreHandle();
-if (state.fileHandle) {
-  try {
-    state.canWrite = await hasWritePermission(state.fileHandle, false);
-  } catch (error) {
-    console.warn("The stored file handle is no longer available.", error);
-    state.fileHandle = null;
-    state.canWrite = false;
-    await storeHandle(null);
-  }
+//
+// The active manuscript always comes from a fresh source on load: the desktop app's
+// active file on disk when running as desktop, or the sessionStorage cache when
+// re-entering the same browser tab (e.g. a dev-mode reload). We never fall back to a
+// manuscript that was persisted from a previous, separate app session.
+function showInitError(context: string, error: unknown): void {
+  console.error(`[writasaurus] Editor initialization failed during "${context}".`, error);
+  const banner = document.createElement("div");
+  banner.setAttribute("role", "alert");
+  banner.style.cssText =
+    "position:fixed;top:0;left:0;right:0;z-index:9999;background:#7f1d1d;color:#fff;" +
+    "padding:8px 12px;font:12px/1.4 monospace;white-space:pre-wrap;max-height:40vh;overflow:auto;";
+  const message = error instanceof Error ? (error.stack || error.message) : String(error);
+  banner.textContent = `Editor init error (${context}): ${message}`;
+  document.body.prepend(banner);
 }
 
 try {
-  const response = await fetch("/api/editor/status");
-  if (response.ok) {
-    const status = await response.json();
-    state.isDesktop = status.isDesktop === true;
-    if (state.isDesktop) {
-      document.body.classList.add("desktop-mode");
-    }
-    state.desktopFileLoaded = typeof status.activeFile === "string";
-    if (state.desktopFileLoaded && typeof status.content === "string" && status.activeFile) {
-      state.manuscript = parseManuscript(status.content, status.activeFile);
-      state.activeChapter = 0;
+  state.fileHandle = await restoreHandle();
+  if (state.fileHandle) {
+    try {
+      state.canWrite = await hasWritePermission(state.fileHandle, false);
+    } catch (error) {
+      console.warn("The stored file handle is no longer available.", error);
       state.fileHandle = null;
       state.canWrite = false;
-      elements.saveStatus.textContent = `Active file: ${status.activeFile}`;
-      elements.saveStatus.className = "saved";
-      state.hasUnsavedChanges = false;
-      elements.saveButton.disabled = true;
-      saveLocal(state.manuscript, state.activeChapter, state.hasUnsavedChanges);
-    } else if (state.desktopFileLoaded && status.activeFile) {
-      state.manuscript.filename = status.activeFile;
-      element("#filename").textContent = status.activeFile;
-      elements.saveStatus.textContent = `Active file: ${status.activeFile}`;
-      elements.saveStatus.className = "saved";
-      state.hasUnsavedChanges = false;
-      elements.saveButton.disabled = true;
+      await storeHandle(null);
     }
   }
-} catch {
-  state.isDesktop = false;
+
+  let opened = false;
+
+  try {
+    const response = await fetch("/api/editor/status");
+    if (response.ok) {
+      const status = await response.json();
+      state.isDesktop = status.isDesktop === true;
+      if (state.isDesktop) {
+        document.body.classList.add("desktop-mode");
+      }
+      if (
+        state.isDesktop && typeof status.activeFile === "string" &&
+        typeof status.content === "string"
+      ) {
+        state.manuscript = parseManuscript(status.content, status.activeFile);
+        state.activeChapter = 0;
+        state.fileHandle = null;
+        state.canWrite = false;
+        state.hasUnsavedChanges = false;
+        state.desktopFileLoaded = true;
+        saveLocal(state.manuscript, state.activeChapter, state.hasUnsavedChanges);
+        opened = true;
+      }
+    }
+  } catch (error) {
+    console.warn("Could not reach the desktop status API, or could not parse its content.", error);
+    state.isDesktop = false;
+  }
+
+  if (!opened) {
+    state.desktopFileLoaded = false;
+    const saved = restoreLocal();
+    if (saved) {
+      state.manuscript = saved.manuscript;
+      state.activeChapter = saved.activeChapter;
+      state.hasUnsavedChanges = Boolean(saved.hasUnsavedChanges);
+      opened = true;
+    }
+  }
+
+  if (opened) {
+    element("#filename").textContent = state.manuscript.filename;
+    if (state.hasUnsavedChanges) {
+      updateChangedStatus(elements.saveStatus, elements.saveButton);
+    } else {
+      updateStatus(elements.saveStatus, state.manuscript.filename, elements.saveButton);
+    }
+  } else {
+    state.hasUnsavedChanges = false;
+    updateStatus(elements.saveStatus, undefined, elements.saveButton);
+  }
+
+  applyFontPreference(getFontPreference());
+
+  if (!opened && !shouldSkipWelcome()) {
+    globalThis.location.replace("/welcome");
+  }
+
+  elements.sidebar.collapse();
+  render();
+
+  if (opened && !state.manuscript.chapters[state.activeChapter]) {
+    showInitError(
+      "render",
+      new Error(
+        `Manuscript "${state.manuscript.filename}" loaded but has no chapter at index ` +
+          `${state.activeChapter} (chapters: ${state.manuscript.chapters.length}). ` +
+          `The editor content area was left blank.`,
+      ),
+    );
+  }
+} catch (error) {
+  showInitError("startup", error);
 }
-
-applyFontPreference(getFontPreference());
-
-if (!saved && !state.desktopFileLoaded && !sessionStorage.getItem("writasaurus-skip-welcome")) {
-  globalThis.location.replace("/welcome");
-}
-
-elements.sidebar.collapse();
-render();
