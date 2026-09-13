@@ -1,6 +1,6 @@
 # Writasaurus
 
-A local-first manuscript editor built with Deno and the deno standard library only. Deno serves the application, bundles browser TypeScript and CSS, and Deno Desktop packages
+A local-first manuscript editor built with Deno and the deno standard library, with no other dependencies. Deno serves the application, bundles browser TypeScript and CSS, and Deno Desktop packages
 it in a native webview.
 
 ## Run
