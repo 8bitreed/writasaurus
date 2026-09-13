@@ -1,5 +1,6 @@
 import { element } from "../../lib/utilties/dom-utilities.ts";
 import { applyFontPreference, getFontPreference } from "../../lib/settings.ts";
+import { syncTruncationTooltip } from "../../lib/text/text.ts";
 import type { EditorElements } from "./client/types.ts";
 // Imported for its side effect of registering the custom elements used on this page
 // (editor-sidebar, editor-canvas, etc.) via customElements.define(). `EditorSidebar` is
@@ -34,17 +35,24 @@ const elements: EditorElements = {
   manuscriptTitle: element<HTMLInputElement>("#manuscript-title"),
   fileInput: element<HTMLInputElement>("#file-input"),
   saveStatus: element("#save-status"),
-  saveButton: element<HTMLButtonElement>("#save-button"),
 };
+
+const filenameEl = element("#filename");
+
+// Only shows a native tooltip when the title/filename text is actually
+// truncated by the `text-overflow: ellipsis` CSS on these elements.
+function syncTitleTooltips(): void {
+  syncTruncationTooltip(elements.manuscriptTitle);
+  syncTruncationTooltip(filenameEl);
+}
+
+globalThis.addEventListener("resize", syncTitleTooltips);
 
 async function save(): Promise<void> {
   if (!state.hasUnsavedChanges) return;
   syncChapter(elements.editor);
   saveLocal(state.manuscript, state.activeChapter, state.hasUnsavedChanges);
-  await saveToDisk(elements.editor, elements.saveStatus, false, elements.saveButton);
-  if (!state.hasUnsavedChanges) {
-    elements.saveButton.disabled = true;
-  }
+  await saveToDisk(elements.editor, elements.saveStatus, false);
 }
 
 async function quit(): Promise<void> {
@@ -79,18 +87,20 @@ function render(): void {
     (index) => selectChapter(index, elements.editor, elements.sidebar, actionCallbacks),
     (index) => deleteChapter(index, elements.editor, actionCallbacks),
   );
+  syncTitleTooltips();
 }
 
 const actionCallbacks: ActionCallbacks = {
   render,
   onChanged: () => {
     state.hasUnsavedChanges = true;
-    updateChangedStatus(elements.saveStatus, elements.saveButton);
+    updateChangedStatus(elements.saveStatus);
   },
   onLoaded: (filename) => {
     state.hasUnsavedChanges = false;
-    updateStatus(elements.saveStatus, filename, elements.saveButton);
-    element("#filename").textContent = filename;
+    updateStatus(elements.saveStatus, filename);
+    filenameEl.textContent = filename;
+    syncTitleTooltips();
   },
 };
 
@@ -98,7 +108,7 @@ function changed(): void {
   syncChapter(elements.editor);
   state.hasUnsavedChanges = true;
   saveLocal(state.manuscript, state.activeChapter, state.hasUnsavedChanges);
-  updateChangedStatus(elements.saveStatus, elements.saveButton);
+  updateChangedStatus(elements.saveStatus);
   updateStats(state.manuscript, state.activeChapter);
 }
 
@@ -149,6 +159,7 @@ appMenu.addEventListener("click", (event) => {
 elements.manuscriptTitle.addEventListener("input", () => {
   state.manuscript.frontmatter.title = elements.manuscriptTitle.value.trim() ||
     "Untitled Manuscript";
+  syncTitleTooltips();
   changed();
 });
 
@@ -176,10 +187,6 @@ globalThis.addEventListener("keydown", (event) => {
     event.preventDefault();
     elements.sidebar.toggle();
   }
-});
-
-elements.saveButton.addEventListener("click", () => {
-  void save();
 });
 
 element("#save-file")?.addEventListener("click", () => {
@@ -323,14 +330,15 @@ try {
 
   if (opened) {
     element("#filename").textContent = state.manuscript.filename;
+    syncTitleTooltips();
     if (state.hasUnsavedChanges) {
-      updateChangedStatus(elements.saveStatus, elements.saveButton);
+      updateChangedStatus(elements.saveStatus);
     } else {
-      updateStatus(elements.saveStatus, state.manuscript.filename, elements.saveButton);
+      updateStatus(elements.saveStatus, state.manuscript.filename);
     }
   } else {
     state.hasUnsavedChanges = false;
-    updateStatus(elements.saveStatus, undefined, elements.saveButton);
+    updateStatus(elements.saveStatus, undefined);
   }
 
   applyFontPreference(getFontPreference());

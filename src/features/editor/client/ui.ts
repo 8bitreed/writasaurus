@@ -56,22 +56,14 @@ export function updateStats(manuscript: Manuscript, activeChapter: number): void
 export function updateStatus(
   saveStatus: HTMLElement,
   filename?: string,
-  saveButton?: HTMLButtonElement,
 ): void {
   saveStatus.textContent = filename ? `Saved to ${filename}` : "Saved";
   saveStatus.className = "saved";
-  if (saveButton) {
-    saveButton.disabled = true;
-  }
 }
 
 export function updateChangedStatus(
   saveStatus: HTMLElement,
-  saveButton?: HTMLButtonElement,
 ): void {
   saveStatus.textContent = "Unsaved changes";
   saveStatus.className = "unsaved";
-  if (saveButton) {
-    saveButton.disabled = false;
-  }
 }

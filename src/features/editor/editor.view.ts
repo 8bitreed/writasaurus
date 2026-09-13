@@ -19,11 +19,22 @@ export const editorView = createView((ctx, props: Props) => {
         <div class="topbar-center">
           <input id="manuscript-title" value="Untitled Manuscript" aria-label="Manuscript title"
             placeholder="Untitled Manuscript">
-          <span id="filename">manuscript.md</span>
+          <span class="topbar-meta">
+            <span id="filename">manuscript.md</span>
+            <span class="save-status-group">
+              <span id="save-status"></span>
+              <!-- comment out for now: <kbd class="save-hint" title="Save (Ctrl+S)">Ctrl+S</kbd>-->
+            </span>
+          </span>
         </div>
         <strong id="chapter-breadcrumb" hidden>Chapter 1</strong>
         <div class="topbar-right">
-          <button type="button" id="menu-toggle" class="menu-toggle" aria-label="Menu"
+          <editor-toolbar class="editor-toolbar" aria-label="Formatting toolbar" for="#editor">
+            <button type="button" class="small" data-command="bold"><strong>B</strong></button>
+            <button type="button" class="small" data-command="italic"><em>I</em></button>
+            <button type="button" class="small" data-command="insertUnorderedList">List</button>
+          </editor-toolbar>
+          <button type="button" id="menu-toggle" class="menu-toggle small" aria-label="Menu"
             aria-expanded="false" aria-haspopup="true">
             <span class="hamburger-icon" aria-hidden="true">
               <span></span>
@@ -56,14 +67,6 @@ export const editorView = createView((ctx, props: Props) => {
           </editor-sidebar>
           <section class="writing-area">
             <input id="chapter-title" value="Chapter " aria-label="Chapter title">
-            <!--<editor-toolbar style="display: none!" class="editor-toolbar" aria-label="Formatting toolbar"
-              for="#editor">
-              <button type="button" data-command="bold"><strong>B</strong></button>
-              <button type="button" data-command="italic"><em>I</em></button>
-              <button type="button" data-command="formatBlock" data-value="h2">Heading</button>
-              <button type="button" data-command="formatBlock" data-value="blockquote">Quote</button>
-              <button type="button" data-command="insertUnorderedList">List</button>
-            </editor-toolbar>-->
             <editor-canvas id="editor" class="editor-canvas" contenteditable="true" role="textbox"
               aria-multiline="true">
               <p>Begin the next chapter...</p>
@@ -81,8 +84,6 @@ export const editorView = createView((ctx, props: Props) => {
           <span id="chapter-stats">Chapter: 0 words</span>
           <span class="stat-divider" aria-hidden="true">|</span>
           <span id="total-stats">Manuscript: 0 words</span>
-          <span class="stat-divider" aria-hidden="true">|</span>
-          <span id="save-status"></span>
         </div>
       </editor-statusbar>
     `,

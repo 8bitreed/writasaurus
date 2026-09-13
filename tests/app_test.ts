@@ -17,8 +17,9 @@ Deno.test("renders editor on root route with its registered asset entries", asyn
   assert(!page.includes("<editor-modal"));
   assert(page.includes("<editor-statusbar"));
   assert(page.includes('id="chapter-list"'));
-  assert(page.includes('id="save-button"'));
-  assert(page.includes("disabled>Save</button>"));
+  assert(page.includes('id="save-file"'));
+  assert(page.includes('id="quit-app"'));
+  assert(!page.includes('id="save-button"'));
   assert(page.includes('contenteditable="true"'));
   assert(page.includes('href="/about"'));
   assert(page.includes('href="/settings"'));
