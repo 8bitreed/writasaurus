@@ -50,10 +50,6 @@ editor-statusbar {
   text-align: center;
 }
 
-.desktop-mode .topbar-right {
-  display: none;
-}
-
 .editor-topbar button,
 .editor-topbar .button,
 .editor-statusbar button,
@@ -219,6 +215,15 @@ editor-statusbar {
 .menu-divider {
   border-top: 1px solid var(--border);
   margin: 0.35rem 0;
+}
+
+#quit-app {
+  color: var(--danger);
+  display: none;
+}
+
+.desktop-mode #quit-app {
+  display: flex;
 }
 
 #manuscript-title,

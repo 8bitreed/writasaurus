@@ -186,6 +186,10 @@ element("#save-file")?.addEventListener("click", () => {
   void save();
 });
 
+element("#quit-app")?.addEventListener("click", () => {
+  void quit();
+});
+
 elements.fileInput.addEventListener("change", () => {
   const file = elements.fileInput.files?.[0];
   if (file) void loadFile(file, null, false, actionCallbacks);

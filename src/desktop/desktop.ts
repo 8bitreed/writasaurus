@@ -1,7 +1,6 @@
 type DesktopWindow = {
   setSize?: (w: number, h: number) => void;
   setTitle?: (t: string) => void;
-  setApplicationMenu?: (menu: unknown[]) => void;
   executeJs?: (code: string) => Promise<unknown>;
   addEventListener?: (
     type: string,
@@ -13,38 +12,6 @@ const desktop = Deno as unknown as {
   BrowserWindow?: new (opts: Record<string, unknown>) => DesktopWindow;
 };
 
-function applicationMenu() {
-  const item = (label: string, id: string, accelerator?: string) => ({
-    item: { label, id, accelerator, enabled: true },
-  });
-
-  return [
-    {
-      submenu: {
-        label: "File",
-        items: [
-          item("Save", "save-file", "CmdOrCtrl+S"),
-          item("Open", "open-file", "CmdOrCtrl+O"),
-          "separator",
-          item("Settings", "settings", "CmdOrCtrl+,"),
-          "separator",
-          item("Quit", "quit", "CmdOrCtrl+Q"),
-        ],
-      },
-    },
-    {
-      submenu: {
-        label: "Help",
-        items: [
-          item("Settings", "settings"),
-          "separator",
-          item("About", "about"),
-        ],
-      },
-    },
-  ];
-}
-
 if (desktop.BrowserWindow) {
   const win = new desktop.BrowserWindow({
     title: "Writasaurus",
@@ -52,23 +19,14 @@ if (desktop.BrowserWindow) {
     height: 700,
   });
 
-  win.setApplicationMenu?.(applicationMenu());
   win.addEventListener?.("close", () => {
-    Deno.exit(0);
-  });
-  win.addEventListener?.("menuclick", (e) => {
-    const id = e.detail?.id;
-    const calls: Record<string, string> = {
-      "save-file": "globalThis.writasaurus?.save()",
-      "open-file": "globalThis.writasaurus?.open()",
-      "settings":
-        "globalThis.writasaurus?.settings?.() ?? (globalThis.location.href = '/settings')",
-      "about": "globalThis.writasaurus?.about?.() ?? (globalThis.location.href = '/about')",
-      "quit": "globalThis.writasaurus?.quit?.()",
-    };
-    if (id && calls[id]) {
-      win.executeJs?.(calls[id]);
-    } else if (id === "quit") {
+    // Delegate to the page's quit() so unsaved changes can be confirmed/saved before
+    // the process actually exits. If the page can't run it (e.g. it already
+    // unloaded), fall back to exiting immediately so the app never hangs open.
+    const result = win.executeJs?.("globalThis.writasaurus?.quit?.()");
+    if (result) {
+      result.catch(() => Deno.exit(0));
+    } else {
       Deno.exit(0);
     }
   });
