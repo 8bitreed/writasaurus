@@ -1,20 +1,22 @@
-import { defineWebComponent } from "../../../framework/component/component.ts";
-import type { ComponentElement } from "../../../framework/component/types.ts";
+import {
+  defineWebComponent,
+  type WebComponentElement,
+} from "../../../framework/web-components/web-component-builder.ts";
 import { html } from "../../../framework/html/client_html_renderer.ts";
 import { getWordsPerPagePreference } from "../../../lib/settings.ts";
 import { editorEvents } from "./editor-events.ts";
 import "./word-count.ts";
 
-export interface EditorStatusbar extends ComponentElement {
+export interface EditorStatusbar extends WebComponentElement<EditorStats> {
   setStats(options: EditorStats): void;
 }
 
-export interface EditorStats {
+export type EditorStats = {
   chapterWords: number;
   chapterChars: number;
   totalWords: number;
   wordsPerPage?: number;
-}
+};
 
 function setStats(this: EditorStatusbar, options: EditorStats): void {
   Object.assign(this.state, {
@@ -29,10 +31,9 @@ function toggleSidebar(): void {
   editorEvents.emit("toggleSidebar", undefined);
 }
 
-defineWebComponent(
-  "editor-statusbar",
-  ({ defineProperty, defineRender, defineState, defineStyles }) => {
-    defineStyles(/* css */ `
+defineWebComponent("editor-statusbar", (component) => {
+  return component
+    .defineStyles(/* css */ `
     :host {
       align-items: center;
       background: var(--surface);
@@ -94,10 +95,10 @@ defineWebComponent(
         padding: 0.4rem 0.75rem;
       }
     }
-  `);
-    defineState({ chapterChars: 0, chapterWords: 0, totalWords: 0, wordsPerPage: 300 });
-    defineProperty("setStats", setStats);
-    defineRender(({ state }) => {
+  `)
+    .defineState({ chapterChars: 0, chapterWords: 0, totalWords: 0, wordsPerPage: 300 })
+    .defineProperty("setStats", setStats)
+    .defineRender(({ state }) => {
       const { chapterChars, chapterWords, totalWords, wordsPerPage } = state;
 
       return html`
@@ -113,5 +114,4 @@ defineWebComponent(
         ></word-count>
       `;
     });
-  },
-);
+});

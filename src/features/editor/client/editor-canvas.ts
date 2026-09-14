@@ -1,4 +1,4 @@
-import { defineWebComponent } from "../../../framework/component/component.ts";
+import { defineWebComponent } from "../../../framework/web-components/web-component-builder.ts";
 import { executeEditorCommand } from "./editor-commands.ts";
 
 function handlePaste(event: Event): void {
@@ -17,20 +17,19 @@ function handleKeyDown(event: Event): void {
   (event.currentTarget as HTMLElement).dispatchEvent(new Event("input", { bubbles: true }));
 }
 
-defineWebComponent("editor-canvas", ({ connectedCallback, defineShadow, disconnectedCallback }) => {
+defineWebComponent("editor-canvas", (component) => {
   // This element is itself the contenteditable surface and retains server-rendered content.
-  defineShadow(false);
-
-  connectedCallback((canvas) => {
-    if (!canvas.hasAttribute("contenteditable")) canvas.setAttribute("contenteditable", "true");
-    if (!canvas.hasAttribute("role")) canvas.setAttribute("role", "textbox");
-    if (!canvas.hasAttribute("aria-multiline")) canvas.setAttribute("aria-multiline", "true");
-    canvas.addEventListener("paste", handlePaste);
-    canvas.addEventListener("keydown", handleKeyDown);
-  });
-
-  disconnectedCallback((canvas) => {
-    canvas.removeEventListener("paste", handlePaste);
-    canvas.removeEventListener("keydown", handleKeyDown);
-  });
+  return component
+    .defineShadow(false)
+    .connectedCallback((canvas) => {
+      if (!canvas.hasAttribute("contenteditable")) canvas.setAttribute("contenteditable", "true");
+      if (!canvas.hasAttribute("role")) canvas.setAttribute("role", "textbox");
+      if (!canvas.hasAttribute("aria-multiline")) canvas.setAttribute("aria-multiline", "true");
+      canvas.addEventListener("paste", handlePaste);
+      canvas.addEventListener("keydown", handleKeyDown);
+    })
+    .disconnectedCallback((canvas) => {
+      canvas.removeEventListener("paste", handlePaste);
+      canvas.removeEventListener("keydown", handleKeyDown);
+    });
 });

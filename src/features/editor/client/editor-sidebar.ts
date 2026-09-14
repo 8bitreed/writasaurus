@@ -1,7 +1,9 @@
-import { defineWebComponent } from "../../../framework/component/component.ts";
-import type { ComponentElement } from "../../../framework/component/types.ts";
+import {
+  defineWebComponent,
+  type WebComponentElement,
+} from "../../../framework/web-components/web-component-builder.ts";
 
-export interface EditorSidebar extends ComponentElement {
+export interface EditorSidebar extends WebComponentElement<Record<string, never>> {
   collapsed: boolean;
   toggle(): boolean;
   collapse(): void;
@@ -30,11 +32,12 @@ function expand(this: EditorSidebar): void {
   this.collapsed = false;
 }
 
-defineWebComponent("editor-sidebar", ({ defineProperty, defineShadow }) => {
+defineWebComponent("editor-sidebar", (component) => {
   // The server-rendered chapter list remains in light DOM for the editor UI.
-  defineShadow(false);
-  defineProperty("collapsed", { get: getCollapsed, set: setCollapsed });
-  defineProperty("toggle", toggle);
-  defineProperty("collapse", collapse);
-  defineProperty("expand", expand);
+  return component
+    .defineShadow(false)
+    .defineProperty("collapsed", { get: getCollapsed, set: setCollapsed })
+    .defineProperty("toggle", toggle)
+    .defineProperty("collapse", collapse)
+    .defineProperty("expand", expand);
 });

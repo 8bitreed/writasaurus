@@ -1,4 +1,4 @@
-import { defineWebComponent } from "../../../framework/component/component.ts";
+import { defineWebComponent } from "../../../framework/web-components/web-component-builder.ts";
 import { html } from "../../../framework/html/client_html_renderer.ts";
 import { editorEvents } from "./editor-events.ts";
 
@@ -26,10 +26,9 @@ function handleToolbarClick(event: Event): void {
   });
 }
 
-defineWebComponent(
-  "editor-toolbar",
-  ({ connectedCallback, defineRender, defineStyles, disconnectedCallback }) => {
-    defineStyles(/* css */ `
+defineWebComponent("editor-toolbar", (component) => {
+  return component
+    .defineStyles(/* css */ `
       :host {
         align-items: center;
         display: flex;
@@ -76,21 +75,20 @@ defineWebComponent(
           display: none;
         }
       }
-    `);
-    defineRender(() =>
+    `)
+    .defineRender(() =>
       html`
         <button type="button" class="small" data-command="bold"><strong>B</strong></button>
         <button type="button" class="small" data-command="italic"><em>I</em></button>
         <button type="button" class="small" data-command="insertUnorderedList">List</button>
       `
-    );
-    connectedCallback((toolbar) => {
+    )
+    .connectedCallback((toolbar) => {
       toolbar.root.addEventListener("mousedown", preserveEditorSelection);
       toolbar.root.addEventListener("click", handleToolbarClick);
-    });
-    disconnectedCallback((toolbar) => {
+    })
+    .disconnectedCallback((toolbar) => {
       toolbar.root.removeEventListener("mousedown", preserveEditorSelection);
       toolbar.root.removeEventListener("click", handleToolbarClick);
     });
-  },
-);
+});

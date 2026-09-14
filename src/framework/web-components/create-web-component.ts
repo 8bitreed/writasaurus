@@ -1,12 +1,16 @@
 import { renderHtml, type TemplateResult } from "./render-html.ts";
 
 export type AttributeValue = string | number | boolean;
+export type ComponentRoot = ShadowRoot | HTMLElement;
 
 export interface RuntimeComponentElement extends HTMLElement {
-  readonly root: ShadowRoot;
+  readonly root: ComponentRoot;
   readonly state: Record<string, unknown>;
   readonly observedAttribute: Readonly<Record<string, AttributeValue>>;
   render(): void;
+  $<T extends Element = HTMLElement>(selector: string): T | null;
+  $$<T extends Element = HTMLElement>(selector: string): NodeListOf<T>;
+  emit<T>(name: string, detail?: T, options?: CustomEventInit<T>): boolean;
 }
 
 export interface WebComponentDefinition {
@@ -14,117 +18,116 @@ export interface WebComponentDefinition {
   observedAttributes: Readonly<Record<string, AttributeValue>>;
   stateFactory: () => Record<string, unknown>;
   styles: readonly string[];
+  shadow: boolean | ShadowRootInit;
+  properties: ReadonlyMap<PropertyKey, PropertyDescriptor>;
   render?: (element: RuntimeComponentElement) => TemplateResult;
+  connected?: (element: RuntimeComponentElement) => void;
+  disconnected?: (element: RuntimeComponentElement) => void;
 }
 
-function createReactiveState(
-  state: Record<string, unknown>,
-  render: () => void,
-): Record<string, unknown> {
+function reactive(state: Record<string, unknown>, notify: () => void): Record<string, unknown> {
   return new Proxy(state, {
-    set(target, property, value) {
-      const previous = Reflect.get(target, property);
-      const updated = Reflect.set(target, property, value);
-      if (updated && !Object.is(previous, value)) render();
-      return updated;
+    set(t, p, v) {
+      const old = Reflect.get(t, p);
+      const ok = Reflect.set(t, p, v);
+      if (ok && !Object.is(old, v)) notify();
+      return ok;
     },
-    deleteProperty(target, property) {
-      const deleted = Reflect.deleteProperty(target, property);
-      if (deleted) render();
-      return deleted;
+    deleteProperty(t, p) {
+      const ok = Reflect.deleteProperty(t, p);
+      if (ok) notify();
+      return ok;
     },
   });
 }
-
-function parseAttribute(value: string | null, fallback: AttributeValue): AttributeValue {
+function parse(value: string | null, fallback: AttributeValue): AttributeValue {
   if (value === null) return fallback;
   if (typeof fallback === "number") {
-    const number = Number(value);
-    return Number.isFinite(number) ? number : fallback;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
   }
-  if (typeof fallback === "boolean") return value !== "false";
-  return value;
+  return typeof fallback === "boolean" ? value !== "false" : value;
 }
-
-function createStyleSheet(css: string): CSSStyleSheet | null {
+function sheet(css: string): CSSStyleSheet | null {
   if (typeof CSSStyleSheet === "undefined" || !("replaceSync" in CSSStyleSheet.prototype)) {
     return null;
   }
-  const sheet = new CSSStyleSheet();
-  sheet.replaceSync(css);
-  return sheet;
+  const result = new CSSStyleSheet();
+  result.replaceSync(css);
+  return result;
 }
 
-/** Registers a browser custom element from a fully collected builder definition. */
 export function registerWebComponent(definition: WebComponentDefinition): CustomElementConstructor {
   const existing = customElements.get(definition.tagName);
   if (existing) return existing;
-
-  const observedAttributes = Object.freeze(Object.keys(definition.observedAttributes));
-  const sheets = definition.styles.map(createStyleSheet).filter((sheet): sheet is CSSStyleSheet =>
-    sheet !== null
+  const observed = Object.freeze(Object.keys(definition.observedAttributes));
+  const sheets = definition.styles.map(sheet).filter((value): value is CSSStyleSheet =>
+    value !== null
   );
-
   class DefinedWebComponent extends HTMLElement implements RuntimeComponentElement {
     static get observedAttributes(): readonly string[] {
-      return observedAttributes;
+      return observed;
     }
-
-    readonly root: ShadowRoot;
+    readonly root: ComponentRoot;
     readonly state: Record<string, unknown>;
     #mounted = false;
-
     constructor() {
       super();
-      this.root = this.attachShadow({ mode: "open" });
-      if (sheets.length > 0) this.root.adoptedStyleSheets = sheets;
-      else {
-        for (const css of definition.styles) {
+      this.root = definition.shadow === false ? this : this.attachShadow(
+        typeof definition.shadow === "object" ? definition.shadow : { mode: "open" },
+      );
+      if (sheets.length && this.root instanceof ShadowRoot) this.root.adoptedStyleSheets = sheets;
+      else {for (const css of definition.styles) {
           const style = document.createElement("style");
           style.textContent = css;
           this.root.append(style);
-        }
-      }
-      this.state = createReactiveState({ ...definition.stateFactory() }, () => {
+        }}
+      this.state = reactive({ ...definition.stateFactory() }, () => {
         if (this.#mounted) this.render();
       });
     }
-
     get observedAttribute(): Readonly<Record<string, AttributeValue>> {
       return new Proxy({} as Record<string, AttributeValue>, {
-        get: (_target, property) => {
-          if (typeof property !== "string") return undefined;
-          const fallback = definition.observedAttributes[property];
-          return fallback === undefined
-            ? this.getAttribute(property) ?? ""
-            : parseAttribute(this.getAttribute(property), fallback);
-        },
+        get: (_t, p) =>
+          typeof p === "string"
+            ? parse(this.getAttribute(p), definition.observedAttributes[p] ?? "")
+            : undefined,
       });
     }
-
+    $<T extends Element = HTMLElement>(selector: string): T | null {
+      return this.root.querySelector<T>(selector);
+    }
+    $$<T extends Element = HTMLElement>(selector: string): NodeListOf<T> {
+      return this.root.querySelectorAll<T>(selector);
+    }
+    emit<T>(name: string, detail?: T, options?: CustomEventInit<T>): boolean {
+      return this.dispatchEvent(
+        new CustomEvent(name, { bubbles: true, composed: true, detail, ...options }),
+      );
+    }
     render(): void {
       if (definition.render) renderHtml(definition.render(this), this.root);
     }
-
     connectedCallback(): void {
       if (!this.#mounted) {
-        for (const [name, defaultValue] of Object.entries(definition.observedAttributes)) {
-          if (!this.hasAttribute(name)) this.setAttribute(name, String(defaultValue));
+        for (const [n, v] of Object.entries(definition.observedAttributes)) {
+          if (!this.hasAttribute(n)) this.setAttribute(n, String(v));
         }
         this.#mounted = true;
       }
       this.render();
+      definition.connected?.(this);
     }
-
-    attributeChangedCallback(
-      _name: string,
-      oldValue: string | null,
-      newValue: string | null,
-    ): void {
-      if (this.#mounted && oldValue !== newValue) this.render();
+    disconnectedCallback(): void {
+      definition.disconnected?.(this);
+    }
+    attributeChangedCallback(_n: string, old: string | null, next: string | null): void {
+      if (this.#mounted && old !== next) this.render();
     }
   }
-
+  for (const [name, descriptor] of definition.properties) {
+    Object.defineProperty(DefinedWebComponent.prototype, name, descriptor);
+  }
   customElements.define(definition.tagName, DefinedWebComponent);
   return DefinedWebComponent;
 }

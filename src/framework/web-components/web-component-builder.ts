@@ -6,72 +6,107 @@ import {
 import type { TemplateResult } from "../html/client_html_renderer.ts";
 
 export type EmptyObject = Record<PropertyKey, never>;
-
 export type WebComponentElement<
-  State extends Record<string, unknown>,
-  Attributes extends Record<string, AttributeValue> = EmptyObject,
-> = Omit<RuntimeComponentElement, "observedAttribute" | "state"> & {
-  readonly state: State;
-  readonly observedAttribute: Readonly<Attributes>;
+  S extends Record<string, unknown>,
+  A extends Record<string, AttributeValue> = EmptyObject,
+> = Omit<RuntimeComponentElement, "state" | "observedAttribute"> & {
+  readonly state: S;
+  readonly observedAttribute: Readonly<A>;
 };
+type Render<S extends Record<string, unknown>, A extends Record<string, AttributeValue>> = (
+  element: WebComponentElement<S, A>,
+) => TemplateResult;
+type Hook<S extends Record<string, unknown>, A extends Record<string, AttributeValue>> = (
+  element: WebComponentElement<S, A>,
+) => void;
 
 export type WebComponentBuilder<
-  State extends Record<string, unknown> = EmptyObject,
-  Attributes extends Record<string, AttributeValue> = EmptyObject,
+  S extends Record<string, unknown> = EmptyObject,
+  A extends Record<string, AttributeValue> = EmptyObject,
 > = {
-  defineState<NextState extends Record<string, unknown>>(
-    initialState: NextState | (() => NextState),
-  ): WebComponentBuilder<NextState, Attributes>;
-  defineObservedAttributes<NextAttributes extends Record<string, AttributeValue>>(
-    defaults: NextAttributes,
-  ): WebComponentBuilder<State, Attributes & NextAttributes>;
-  defineStyles(css: string | readonly string[]): WebComponentBuilder<State, Attributes>;
-  defineRender(
-    render: (element: WebComponentElement<State, Attributes>) => TemplateResult,
-  ): WebComponentBuilder<State, Attributes>;
+  defineState<N extends Record<string, unknown>>(value: N | (() => N)): WebComponentBuilder<N, A>;
+  defineObservedAttributes<N extends Record<string, AttributeValue>>(
+    defaults: N,
+  ): WebComponentBuilder<S, A & N>;
+  defineStyles(css: string | readonly string[]): WebComponentBuilder<S, A>;
+  defineShadow(shadow: boolean | ShadowRootInit): WebComponentBuilder<S, A>;
+  defineProperty(name: PropertyKey, value: unknown): WebComponentBuilder<S, A>;
+  connectedCallback(callback: Hook<S, A>): WebComponentBuilder<S, A>;
+  disconnectedCallback(callback: Hook<S, A>): WebComponentBuilder<S, A>;
+  defineRender(render: Render<S, A>): WebComponentBuilder<S, A>;
   build(): CustomElementConstructor;
 };
 
+function descriptor(value: unknown): PropertyDescriptor {
+  return value && typeof value === "object" &&
+      ["get", "set", "value", "writable"].some((key) => Object.hasOwn(value, key))
+    ? value as PropertyDescriptor
+    : { configurable: true, value, writable: true };
+}
 export function createWebComponentBuilder(tagName: string): WebComponentBuilder {
   let stateFactory: () => Record<string, unknown> = () => ({});
-  const observedAttributes: Record<string, AttributeValue> = {};
+  const attrs: Record<string, AttributeValue> = {};
   const styles: string[] = [];
-  let render: ((element: RuntimeComponentElement) => TemplateResult) | undefined;
-
+  const properties = new Map<PropertyKey, PropertyDescriptor>();
+  let shadow: boolean | ShadowRootInit = true;
+  let render: ((e: RuntimeComponentElement) => TemplateResult) | undefined;
+  let connected: ((e: RuntimeComponentElement) => void) | undefined;
+  let disconnected: ((e: RuntimeComponentElement) => void) | undefined;
   const builder = {
-    defineState(initialState: Record<string, unknown> | (() => Record<string, unknown>)) {
-      stateFactory = () => {
-        const state = typeof initialState === "function" ? initialState() : initialState;
-        return { ...state };
-      };
+    defineState(value: Record<string, unknown> | (() => Record<string, unknown>)) {
+      stateFactory = () => ({ ...(typeof value === "function" ? value() : value) });
       return builder;
     },
     defineObservedAttributes(defaults: Record<string, AttributeValue>) {
-      Object.assign(observedAttributes, defaults);
+      Object.assign(attrs, defaults);
       return builder;
     },
     defineStyles(css: string | readonly string[]) {
       styles.push(...(Array.isArray(css) ? css : [css]));
       return builder;
     },
-    defineRender(nextRender: (element: RuntimeComponentElement) => TemplateResult) {
-      render = nextRender as unknown as (element: RuntimeComponentElement) => TemplateResult;
+    defineShadow(value: boolean | ShadowRootInit) {
+      shadow = value;
+      return builder;
+    },
+    defineProperty(name: PropertyKey, value: unknown) {
+      properties.set(name, descriptor(value));
+      return builder;
+    },
+    connectedCallback(callback: (e: RuntimeComponentElement) => void) {
+      connected = callback;
+      return builder;
+    },
+    disconnectedCallback(callback: (e: RuntimeComponentElement) => void) {
+      disconnected = callback;
+      return builder;
+    },
+    defineRender(next: (e: RuntimeComponentElement) => TemplateResult) {
+      render = next;
       return builder;
     },
     build() {
-      return registerWebComponent({ tagName, observedAttributes, stateFactory, styles, render });
+      return registerWebComponent({
+        tagName,
+        observedAttributes: attrs,
+        stateFactory,
+        styles,
+        shadow,
+        properties,
+        render,
+        connected,
+        disconnected,
+      });
     },
   };
-
   return builder as unknown as WebComponentBuilder;
 }
-
 export function defineWebComponent<
-  State extends Record<string, unknown>,
-  Attributes extends Record<string, AttributeValue>,
+  S extends Record<string, unknown>,
+  A extends Record<string, AttributeValue>,
 >(
-  tagName: string,
-  definition: (builder: WebComponentBuilder) => WebComponentBuilder<State, Attributes>,
+  tag: string,
+  definition: (builder: WebComponentBuilder) => WebComponentBuilder<S, A>,
 ): CustomElementConstructor {
-  return definition(createWebComponentBuilder(tagName)).build();
+  return definition(createWebComponentBuilder(tag)).build();
 }

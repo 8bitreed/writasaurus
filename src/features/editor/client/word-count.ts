@@ -1,16 +1,15 @@
-import { defineWebComponent } from "../../../framework/component/component.ts";
+import { defineWebComponent } from "../../../framework/web-components/web-component-builder.ts";
 import { html } from "../../../framework/html/client_html_renderer.ts";
 
-defineWebComponent(
-  "word-count",
-  {
-    observedAttributes: {
+defineWebComponent("word-count", (component) => {
+  return component
+    .defineObservedAttributes({
       "chapter-words": 0,
       "chapter-chars": 0,
       "total-words": 0,
       "words-per-page": 300,
-    },
-    style: /* css */ `
+    })
+    .defineStyles(/* css */ `
       :host {
         align-items: center;
         display: flex;
@@ -31,10 +30,8 @@ defineWebComponent(
         color: var(--muted);
         font-size: 0.6rem;
       }
-    `,
-  },
-  (_element, { defineRender }) => {
-    defineRender((element) => {
+    `)
+    .defineRender((element) => {
       const chapterWords = element.observedAttribute["chapter-words"];
       const chapterChars = element.observedAttribute["chapter-chars"];
       const totalWords = element.observedAttribute["total-words"];
@@ -48,5 +45,4 @@ defineWebComponent(
           .toLocaleString()} words · ${(totalWords / wordsPerPage).toFixed(1)} pages</span>
       `;
     });
-  },
-);
+});
