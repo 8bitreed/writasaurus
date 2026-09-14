@@ -43,10 +43,51 @@ function processStyles(
   return { sheets, fallbackCss };
 }
 
+function isReactiveStateObject(value: unknown): value is object {
+  if (value === null || typeof value !== "object") return false;
+  const prototype = Object.getPrototypeOf(value);
+  return Array.isArray(value) || prototype === Object.prototype || prototype === null;
+}
+
+function createReactiveState(
+  initialState: Record<string, unknown>,
+  onChange: () => void,
+): Record<string, unknown> {
+  const proxies = new WeakMap<object, object>();
+
+  const wrap = <Value>(value: Value): Value => {
+    if (!isReactiveStateObject(value)) return value;
+    const existing = proxies.get(value);
+    if (existing) return existing as Value;
+
+    const proxy = new Proxy(value, {
+      get(target, property, receiver) {
+        return wrap(Reflect.get(target, property, receiver));
+      },
+      set(target, property, nextValue) {
+        const previousValue = Reflect.get(target, property);
+        const updated = Reflect.set(target, property, nextValue);
+        if (updated && !Object.is(previousValue, nextValue)) onChange();
+        return updated;
+      },
+      deleteProperty(target, property) {
+        const deleted = Reflect.deleteProperty(target, property);
+        if (deleted) onChange();
+        return deleted;
+      },
+    });
+    proxies.set(value, proxy);
+    return proxy as Value;
+  };
+
+  return wrap(initialState);
+}
+
 interface Definition<E extends HTMLElement> {
   readonly observedAttributes: string[];
   readonly attributeDefaults: Map<string, string>;
   readonly properties: Map<PropertyKey, PropertyDescriptor>;
+  createState: () => Record<string, unknown>;
   render?: ComponentRender<E>;
   connected?: ConnectedCallback<E>;
   disconnected?: ConnectedCallback<E>;
@@ -59,6 +100,7 @@ interface Definition<E extends HTMLElement> {
 const RESERVED_PROPERTY_NAMES = new Set([
   "constructor",
   "root",
+  "state",
   "observedAttribute",
   "$",
   "$$",
@@ -100,6 +142,7 @@ export function component<E extends HTMLElement = HTMLElement>(
     observedAttributes: [...(options.observedAttributes ?? [])],
     attributeDefaults: new Map(),
     properties: new Map(),
+    createState: () => ({}),
     styles: [],
   };
   let activeElement: ComponentElement<E> | null = null;
@@ -145,6 +188,13 @@ export function component<E extends HTMLElement = HTMLElement>(
         }
         definition.properties.set(name, { configurable: true, value, writable: true });
       },
+      defineState: (initialState) => {
+        if (typeof initialState === "function") {
+          definition.createState = () => ({ ...initialState() });
+        } else {
+          definition.createState = () => ({ ...initialState });
+        }
+      },
       defineObservedAttribute: (name, defaultValue) => {
         if (!definition.observedAttributes.includes(name)) definition.observedAttributes.push(name);
         definition.attributeDefaults.set(name, defaultValue);
@@ -182,9 +232,13 @@ export function component<E extends HTMLElement = HTMLElement>(
 
     #root: ShadowRoot | this;
     #mounted = false;
+    readonly state: Record<string, unknown>;
 
     constructor() {
       super();
+      this.state = createReactiveState(definition.createState(), () => {
+        if (this.#mounted) this.render();
+      });
       if (shadowConfig !== false) {
         const init: ShadowRootInit = typeof shadowConfig === "object"
           ? shadowConfig

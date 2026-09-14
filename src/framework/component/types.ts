@@ -19,6 +19,11 @@ export type StyleValue = string | CSSStyleSheet;
 
 export interface ComponentElement<E extends HTMLElement = HTMLElement> extends HTMLElement {
   readonly root: ShadowRoot | this;
+  /**
+   * Mutable per-instance component state. Defaults to an empty object.
+   * Mutating plain-object or array state re-renders the component after mount.
+   */
+  readonly state: Record<string, unknown>;
   /** Current values of attributes declared with `defineObservedAttribute`. */
   readonly observedAttribute: Readonly<Record<string, string | null>>;
   $<T extends Element = HTMLElement>(selector: string): T | null;
@@ -87,6 +92,14 @@ export interface ComponentDefinitionApi<E extends HTMLElement = HTMLElement> {
    * registration helpers.
    */
   defineProperty(name: PropertyKey, value: unknown): void;
+  /**
+   * Sets the initial mutable state for each element instance. Without this
+   * call, every element receives its own empty state object. State mutations
+   * re-render after mount. Pass a factory for nested or computed state.
+   */
+  defineState(
+    initialState?: Record<string, unknown> | (() => Record<string, unknown>),
+  ): void;
   defineObservedAttribute(name: string, defaultValue: string): void;
   defineRender(render: ComponentRender<E>): void;
 }

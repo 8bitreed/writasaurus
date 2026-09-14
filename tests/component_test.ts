@@ -503,6 +503,19 @@ Deno.test("component: callback definition declares defaulted observed attributes
   assert(connectedElement === el);
 });
 
+Deno.test("component: gives every element a distinct state object", () => {
+  const Ctor = component("test-component-state", ({ defineState }) => {
+    defineState({ count: 0 });
+  });
+
+  const first = new Ctor();
+  const second = new Ctor();
+  first.state.count = 1;
+
+  assertEquals(first.state.count, 1);
+  assertEquals(second.state.count, 0);
+});
+
 Deno.test("component: callback definition adds custom prototype properties", () => {
   const Ctor = component("test-custom-properties", ({ defineProperty }) => {
     defineProperty("answer", 42);
