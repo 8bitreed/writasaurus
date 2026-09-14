@@ -19,9 +19,9 @@ import { html } from "../../../framework/html/client_html_renderer.ts";
 
 defineWebComponent(
   "example-widget",
+  { observedAttributes: { label: "Default label" } },
   ({
     connectedCallback,
-    defineObservedAttribute,
     defineProperty,
     defineRender,
     defineState,
@@ -32,7 +32,6 @@ defineWebComponent(
     :host { display: block; }
   `);
 
-    defineObservedAttribute("label", "Default label");
     defineState({ pressed: false });
 
     defineRender(
@@ -56,6 +55,27 @@ defineWebComponent(
 );
 ```
 
+### Typed Composition API
+
+For typed state and attributes, prefer the three-argument form. The setup callback runs once per custom-element instance, and `defineState()` returns the element's reactive state object:
+
+```ts
+defineWebComponent(
+  "counter-widget",
+  { observedAttributes: { label: "Count" } },
+  (element, { defineRender, defineState }) => {
+    const state = defineState(() => ({ count: 0 }));
+
+    defineRender(
+      () =>
+        html`<button>
+          ${element.observedAttribute.label}: ${state.count}
+        </button>`,
+    );
+  },
+);
+```
+
 ### Rules
 
 - Call `defineRender()` only when the component owns declarative DOM. If it is omitted, `render()` and observed-attribute updates are no-ops.
@@ -70,7 +90,8 @@ defineWebComponent(
 
 - Keep component-specific CSS in `defineStyles()`. Components use shadow DOM by default, so page styles do not style their internal markup.
 - Use `defineShadow(false)` only when light DOM is intentional and an external stylesheet must style the component content.
-- Use `defineObservedAttribute(name, defaultValue)` for inputs that should trigger a re-render. Read values through `element.observedAttribute.name`.
+- Prefer the schema form for typed observed attributes: `defineWebComponent("name", { observedAttributes: { count: 0, active: false } }, setup)`. Schema values determine both defaults and runtime parsing, and give `element.observedAttribute.count` the `number` type.
+- Use `defineObservedAttribute(name, defaultValue)` only when the schema cannot be declared up front; it triggers re-renders but cannot refine TypeScript types inside the existing setup callback.
 - Use `defineState(initialState?)` for mutable per-instance state. Every component receives a distinct `{}` state object by default. Plain-object and array mutations automatically re-render after mount. Pass a factory for nested or computed state: `defineState(() => ({ items: [] }))`.
 - Use `defineProperty(name, value)` repeatedly for public prototype methods or values. Do not use it for mutable instance state, because properties defined this way are shared through the prototype. Do not redefine framework-managed names such as `render`, lifecycle callbacks, `$`, `$$`, `emit`, `root`, `state`, or `observedAttribute`.
 - Use lifecycle registration functions for native custom-element callback behavior rather than defining those properties directly.

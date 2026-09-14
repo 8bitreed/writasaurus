@@ -6,6 +6,12 @@ export interface AttributeChange {
   newValue: string | null;
 }
 
+export type ObservedAttributeValue = string | number | boolean;
+export type ObservedAttributeSchema = Record<string, ObservedAttributeValue>;
+
+type ObservedAttributeValues<Attributes extends Record<string, ObservedAttributeValue | null>> =
+  Readonly<Record<string, ObservedAttributeValue | null> & Attributes>;
+
 export type TemplateFactory<E extends HTMLElement = HTMLElement> = (
   element: ComponentElement<E>,
 ) => string | Node;
@@ -17,7 +23,13 @@ export type TemplateValue<E extends HTMLElement = HTMLElement> =
 
 export type StyleValue = string | CSSStyleSheet;
 
-export interface ComponentElement<E extends HTMLElement = HTMLElement> extends HTMLElement {
+export interface ComponentElement<
+  E extends HTMLElement = HTMLElement,
+  Attributes extends Record<string, ObservedAttributeValue | null> = Record<
+    string,
+    ObservedAttributeValue | null
+  >,
+> extends HTMLElement {
   readonly root: ShadowRoot | this;
   /**
    * Mutable per-instance component state. Defaults to an empty object.
@@ -25,7 +37,7 @@ export interface ComponentElement<E extends HTMLElement = HTMLElement> extends H
    */
   readonly state: Record<string, unknown>;
   /** Current values of attributes declared with `defineObservedAttribute`. */
-  readonly observedAttribute: Readonly<Record<string, string | null>>;
+  readonly observedAttribute: ObservedAttributeValues<Attributes>;
   $<T extends Element = HTMLElement>(selector: string): T | null;
   $$<T extends Element = HTMLElement>(selector: string): NodeListOf<T>;
   emit<T = unknown>(name: string, detail?: T, options?: CustomEventInit<T>): boolean;
@@ -39,23 +51,59 @@ export interface ComponentElement<E extends HTMLElement = HTMLElement> extends H
   attributeChangedCallback?(name: string, oldValue: string | null, newValue: string | null): void;
 }
 
-export type ComponentConstructor<E extends HTMLElement = HTMLElement> = {
-  new (): ComponentElement<E>;
+export type ComponentConstructor<
+  E extends HTMLElement = HTMLElement,
+  Attributes extends Record<string, ObservedAttributeValue | null> = Record<
+    string,
+    ObservedAttributeValue | null
+  >,
+> = {
+  new (): ComponentElement<E, Attributes>;
   readonly observedAttributes: readonly string[];
-  prototype: ComponentElement<E>;
+  prototype: ComponentElement<E, Attributes>;
 };
 
-export type ComponentRender<E extends HTMLElement = HTMLElement> = (
-  element: ComponentElement<E>,
+export type ComponentRender<
+  E extends HTMLElement = HTMLElement,
+  Attributes extends Record<string, ObservedAttributeValue | null> = Record<
+    string,
+    ObservedAttributeValue | null
+  >,
+> = (
+  element: ComponentElement<E, Attributes>,
 ) => TemplateResult;
 
-export type ConnectedCallback<E extends HTMLElement = HTMLElement> = (
-  element: ComponentElement<E>,
+export type ConnectedCallback<
+  E extends HTMLElement = HTMLElement,
+  Attributes extends Record<string, ObservedAttributeValue | null> = Record<
+    string,
+    ObservedAttributeValue | null
+  >,
+> = (
+  element: ComponentElement<E, Attributes>,
 ) => void;
-export type DisconnectedCallback<E extends HTMLElement = HTMLElement> = ConnectedCallback<E>;
-export type AdoptedCallback<E extends HTMLElement = HTMLElement> = ConnectedCallback<E>;
-export type AttributeChangedCallback<E extends HTMLElement = HTMLElement> = (
-  element: ComponentElement<E>,
+export type DisconnectedCallback<
+  E extends HTMLElement = HTMLElement,
+  Attributes extends Record<string, ObservedAttributeValue | null> = Record<
+    string,
+    ObservedAttributeValue | null
+  >,
+> = ConnectedCallback<E, Attributes>;
+export type AdoptedCallback<
+  E extends HTMLElement = HTMLElement,
+  Attributes extends Record<string, ObservedAttributeValue | null> = Record<
+    string,
+    ObservedAttributeValue | null
+  >,
+> = ConnectedCallback<E, Attributes>;
+export type AttributeChangedCallback<
+  E extends HTMLElement = HTMLElement,
+  Attributes extends Record<string, ObservedAttributeValue | null> = Record<
+    string,
+    ObservedAttributeValue | null
+  >,
+> = (
+  element: ComponentElement<E, Attributes>,
   change: AttributeChange,
 ) => void;
 
@@ -73,15 +121,21 @@ export type AttributeChangedCallback<E extends HTMLElement = HTMLElement> = (
  * });
  * ```
  */
-export interface ComponentDefinitionApi<E extends HTMLElement = HTMLElement> {
+export interface ComponentDefinitionApi<
+  E extends HTMLElement = HTMLElement,
+  Attributes extends Record<string, ObservedAttributeValue | null> = Record<
+    string,
+    ObservedAttributeValue | null
+  >,
+> {
   readonly observedAttributes: readonly string[];
   render(): void;
   $<T extends Element = HTMLElement>(selector: string): T | null;
   $$<T extends Element = HTMLElement>(selector: string): NodeListOf<T>;
-  connectedCallback(callback: ConnectedCallback<E>): void;
-  disconnectedCallback(callback: DisconnectedCallback<E>): void;
-  adoptedCallback(callback: AdoptedCallback<E>): void;
-  attributeChangedCallback(callback: AttributeChangedCallback<E>): void;
+  connectedCallback(callback: ConnectedCallback<E, Attributes>): void;
+  disconnectedCallback(callback: DisconnectedCallback<E, Attributes>): void;
+  adoptedCallback(callback: AdoptedCallback<E, Attributes>): void;
+  attributeChangedCallback(callback: AttributeChangedCallback<E, Attributes>): void;
   /** Configures the component's shadow root. Defaults to an open shadow root. */
   defineShadow(shadow: boolean | ShadowRootInit): void;
   /** Adds styles adopted by the component's shadow root. */
@@ -100,13 +154,58 @@ export interface ComponentDefinitionApi<E extends HTMLElement = HTMLElement> {
   defineState(
     initialState?: Record<string, unknown> | (() => Record<string, unknown>),
   ): void;
-  defineObservedAttribute(name: string, defaultValue: string): void;
-  defineRender(render: ComponentRender<E>): void;
+  defineObservedAttribute(name: string, defaultValue: ObservedAttributeValue): void;
+  defineRender(render: ComponentRender<E, Attributes>): void;
 }
 
-export type ComponentDefinition<E extends HTMLElement = HTMLElement> = (
-  api: ComponentDefinitionApi<E>,
+export type ComponentDefinition<
+  E extends HTMLElement = HTMLElement,
+  Attributes extends Record<string, ObservedAttributeValue | null> = Record<
+    string,
+    ObservedAttributeValue | null
+  >,
+> = (
+  api: ComponentDefinitionApi<E, Attributes>,
 ) => void;
+
+/** Static component configuration known before individual elements are constructed. */
+export interface ComponentSchema<
+  Attributes extends ObservedAttributeSchema = ObservedAttributeSchema,
+> {
+  observedAttributes?: Attributes;
+  style?: StyleValue | readonly StyleValue[];
+  shadow?: boolean | ShadowRootInit;
+}
+
+/** Per-instance Composition API helpers. */
+export interface ComponentSetupApi<
+  E extends HTMLElement = HTMLElement,
+  Attributes extends Record<string, ObservedAttributeValue | null> = Record<
+    string,
+    ObservedAttributeValue | null
+  >,
+> {
+  render(): void;
+  $<T extends Element = HTMLElement>(selector: string): T | null;
+  $$<T extends Element = HTMLElement>(selector: string): NodeListOf<T>;
+  connectedCallback(callback: ConnectedCallback<E, Attributes>): void;
+  disconnectedCallback(callback: DisconnectedCallback<E, Attributes>): void;
+  adoptedCallback(callback: AdoptedCallback<E, Attributes>): void;
+  attributeChangedCallback(callback: AttributeChangedCallback<E, Attributes>): void;
+  defineProperty(name: PropertyKey, value: unknown): void;
+  defineState<State extends Record<string, unknown>>(
+    initialState: State | (() => State),
+  ): State;
+  defineRender(render: ComponentRender<E, Attributes>): void;
+}
+
+export type ComponentSetup<
+  E extends HTMLElement = HTMLElement,
+  Attributes extends Record<string, ObservedAttributeValue | null> = Record<
+    string,
+    ObservedAttributeValue | null
+  >,
+> = (element: ComponentElement<E, Attributes>, api: ComponentSetupApi<E, Attributes>) => void;
 
 export interface ComponentOptions<E extends HTMLElement = HTMLElement> {
   /**

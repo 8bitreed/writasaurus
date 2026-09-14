@@ -504,6 +504,33 @@ Deno.test("component: callback definition declares defaulted observed attributes
   assertEquals(changes, [{ name: "name", oldValue: null, newValue: "John" }]);
 });
 
+Deno.test("component: parses observed attributes from numeric schemas", () => {
+  const Ctor = defineWebComponent(
+    "test-number-attribute",
+    { observedAttributes: { count: 3 } },
+    () => {},
+  );
+
+  const el = new Ctor();
+  assertEquals(el.observedAttribute.count, 3);
+  el.setAttribute("count", "42");
+  assertEquals(el.observedAttribute.count, 42);
+});
+
+Deno.test("component: setup receives typed per-instance state", () => {
+  const Ctor = defineWebComponent("test-composition-state", {}, (_element, { defineState }) => {
+    const state = defineState(() => ({ count: 0, message: null as string | null }));
+    state.count++;
+    state.message = "Hello";
+  });
+
+  const first = new Ctor();
+  const second = new Ctor();
+  assertEquals(first.state.count, 1);
+  assertEquals(first.state.message, "Hello");
+  assertEquals(second.state.count, 1);
+});
+
 Deno.test("component: gives every element a distinct state object", () => {
   const Ctor = defineWebComponent("test-component-state", ({ defineState }) => {
     defineState({ count: 0 });
