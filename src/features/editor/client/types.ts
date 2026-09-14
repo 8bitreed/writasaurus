@@ -1,4 +1,5 @@
 import type { EditorSidebar } from "./editor-sidebar.ts";
+import type { EditorStatusbar } from "./editor-statusbar.ts";
 
 export interface Chapter {
   id: string;
@@ -27,6 +28,7 @@ export interface EditorElements {
   editor: HTMLElement;
   chapterList: HTMLElement;
   sidebar: EditorSidebar;
+  statusbar: EditorStatusbar;
   chapterTitle: HTMLInputElement;
   manuscriptTitle: HTMLInputElement;
   fileInput: HTMLInputElement;

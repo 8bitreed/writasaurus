@@ -1,4 +1,4 @@
-import { component } from "../../../framework/component/component.ts";
+import { defineWebComponent } from "../../../framework/component/component.ts";
 import { executeEditorCommand } from "./editor-commands.ts";
 
 function handlePaste(event: Event): void {
@@ -17,7 +17,7 @@ function handleKeyDown(event: Event): void {
   (event.currentTarget as HTMLElement).dispatchEvent(new Event("input", { bubbles: true }));
 }
 
-component("editor-canvas", ({ connectedCallback, defineShadow, disconnectedCallback }) => {
+defineWebComponent("editor-canvas", ({ connectedCallback, defineShadow, disconnectedCallback }) => {
   // This element is itself the contenteditable surface and retains server-rendered content.
   defineShadow(false);
 

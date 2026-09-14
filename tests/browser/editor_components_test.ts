@@ -50,6 +50,34 @@ Deno.test("browser: save status renders observed attribute updates", async () =>
   });
 });
 
+Deno.test("browser: status bar delegates stats rendering to word-count", async () => {
+  await withEditorPage(async (page) => {
+    const statusbar = page.locator("editor-statusbar");
+    await statusbar.evaluate((element) => {
+      (element as HTMLElement & { setStats(options: object): void }).setStats({
+        chapterWords: 123,
+        chapterChars: 456,
+        totalWords: 789,
+        wordsPerPage: 300,
+      });
+    });
+
+    const rendered = await statusbar.evaluate((element) => {
+      const wordCount = element.shadowRoot?.querySelector("word-count");
+      return {
+        customElementDefined: customElements.get("word-count") !== undefined,
+        html: wordCount?.outerHTML ?? "",
+        text: wordCount?.shadowRoot?.textContent ?? "",
+      };
+    });
+    assert(
+      rendered.text.includes("Chapter: 123 words · 456 characters") &&
+        rendered.text.includes("Manuscript: 789 words · 2.6 pages"),
+      `Unexpected word-count rendering: ${JSON.stringify(rendered)}`,
+    );
+  });
+});
+
 Deno.test("browser: toolbar bold command formats the selected editor content", async () => {
   await withEditorPage(async (page) => {
     await page.locator("#editor").evaluate((element) => {

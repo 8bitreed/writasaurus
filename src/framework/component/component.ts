@@ -127,15 +127,15 @@ const RESERVED_PROPERTY_NAMES = new Set([
  * attributes, and renderer-backed updates. The legacy object form remains
  * supported for existing components.
  */
-export function component<E extends HTMLElement = HTMLElement>(
+export function defineWebComponent<E extends HTMLElement = HTMLElement>(
   tagName: string,
   definition: ComponentDefinition<E>,
 ): ComponentConstructor<E>;
-export function component<E extends HTMLElement = HTMLElement>(
+export function defineWebComponent<E extends HTMLElement = HTMLElement>(
   tagName: string,
   options?: ComponentOptions<E>,
 ): ComponentConstructor<E>;
-export function component<E extends HTMLElement = HTMLElement>(
+export function defineWebComponent<E extends HTMLElement = HTMLElement>(
   tagName: string,
   config: ComponentOptions<E> | ComponentDefinition<E> = {},
 ): ComponentConstructor<E> {
@@ -279,9 +279,6 @@ export function component<E extends HTMLElement = HTMLElement>(
         }
       }
 
-      for (const [name, value] of definition.attributeDefaults) {
-        if (!this.hasAttribute(name)) this.setAttribute(name, value);
-      }
       options.onInit?.(this as unknown as ComponentElement<E>);
     }
 
@@ -291,8 +288,10 @@ export function component<E extends HTMLElement = HTMLElement>(
 
     get observedAttribute(): Readonly<Record<string, string | null>> {
       return new Proxy({} as Record<string, string | null>, {
-        get: (_target, property) =>
-          typeof property === "string" ? this.getAttribute(property) : undefined,
+        get: (_target, property) => {
+          if (typeof property !== "string") return undefined;
+          return this.getAttribute(property) ?? definition.attributeDefaults.get(property) ?? null;
+        },
       });
     }
 
@@ -318,6 +317,7 @@ export function component<E extends HTMLElement = HTMLElement>(
     render(): void {
       if (!definition.render) return;
       renderHtml(definition.render(this as unknown as ComponentElement<E>), this.#root);
+      if (typeof customElements !== "undefined") customElements.upgrade(this.#root);
     }
 
     update(detail?: unknown): void {
@@ -337,6 +337,9 @@ export function component<E extends HTMLElement = HTMLElement>(
 
     connectedCallback(): void {
       if (!this.#mounted) {
+        for (const [name, value] of definition.attributeDefaults) {
+          if (!this.hasAttribute(name)) this.setAttribute(name, value);
+        }
         if (templateElement) this.#root.appendChild(templateElement.content.cloneNode(true));
         else if (typeof options.template === "function") {
           const result = options.template(this as unknown as ComponentElement<E>);

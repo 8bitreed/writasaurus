@@ -1,4 +1,4 @@
-import { component } from "../../../framework/component/component.ts";
+import { defineWebComponent } from "../../../framework/component/component.ts";
 import { html } from "../../../framework/html/client_html_renderer.ts";
 import { editorEvents } from "./editor-events.ts";
 
@@ -26,7 +26,7 @@ function handleToolbarClick(event: Event): void {
   });
 }
 
-component(
+defineWebComponent(
   "editor-toolbar",
   ({ connectedCallback, defineRender, defineStyles, disconnectedCallback }) => {
     defineStyles(/* css */ `

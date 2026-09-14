@@ -1,4 +1,4 @@
-import { component } from "../src/framework/component/component.ts";
+import { defineWebComponent } from "../src/framework/component/component.ts";
 import type { AttributeChange, ComponentElement } from "../src/framework/component/types.ts";
 
 function assert(condition: boolean, message = "Assertion failed"): void {
@@ -290,7 +290,7 @@ globalAny.document = {
 
 // Tests
 Deno.test("component: defines and registers custom element", () => {
-  const Ctor = component("test-basic", {});
+  const Ctor = defineWebComponent("test-basic", {});
   assert(Ctor !== undefined);
   assertEquals(customElements.get("test-basic"), Ctor);
 });
@@ -298,7 +298,7 @@ Deno.test("component: defines and registers custom element", () => {
 Deno.test("component: executes onInit on construction with element passed", () => {
   let initPassedEl: ComponentElement | null = null;
 
-  const Ctor = component("test-init", {
+  const Ctor = defineWebComponent("test-init", {
     onInit(el) {
       initPassedEl = el;
     },
@@ -310,7 +310,7 @@ Deno.test("component: executes onInit on construction with element passed", () =
 });
 
 Deno.test("component: injects template and adopted stylesheet into shadow DOM", () => {
-  const Ctor = component("test-shadow-assets", {
+  const Ctor = defineWebComponent("test-shadow-assets", {
     template: /* html */ `<button id="btn">Click me</button>`,
     style: /* css */ `:host { display: block; }`,
     shadow: true,
@@ -330,7 +330,7 @@ Deno.test("component: injects template and adopted stylesheet into shadow DOM", 
 });
 
 Deno.test("component: supports light DOM (shadow: false)", () => {
-  const Ctor = component("test-light-dom", {
+  const Ctor = defineWebComponent("test-light-dom", {
     template: /* html */ `<span id="inner">Content</span>`,
     shadow: false,
   });
@@ -349,7 +349,7 @@ Deno.test("component: onMounted and onUnmounted lifecycle callbacks", () => {
   let mounted = 0;
   let unmounted = 0;
 
-  const Ctor = component("test-lifecycle", {
+  const Ctor = defineWebComponent("test-lifecycle", {
     onMounted(el) {
       mounted++;
       assert(el !== null);
@@ -377,7 +377,7 @@ Deno.test("component: onAttributeChanged and onUpdate on observed attributes", (
   const changes: AttributeChange[] = [];
   const updates: unknown[] = [];
 
-  const Ctor = component("test-attrs", {
+  const Ctor = defineWebComponent("test-attrs", {
     observedAttributes: ["title", "count"],
     onAttributeChanged(el, change) {
       assert(el !== null);
@@ -404,7 +404,7 @@ Deno.test("component: element helpers ($$, emit, update)", () => {
   let receivedEvent: CustomEvent | null = null;
   let updateDetail: unknown = null;
 
-  const Ctor = component("test-helpers", {
+  const Ctor = defineWebComponent("test-helpers", {
     template: `<div class="item">1</div>`,
     onUpdate(el, detail) {
       assert(el !== null);
@@ -435,7 +435,7 @@ Deno.test("component: element helpers ($$, emit, update)", () => {
 });
 
 Deno.test("component: dynamic template function", () => {
-  const Ctor = component("test-dynamic-template", {
+  const Ctor = defineWebComponent("test-dynamic-template", {
     template(el) {
       return /* html */ `<button id="dyn-btn">Dynamic for ${el.tagName}</button>`;
     },
@@ -450,7 +450,7 @@ Deno.test("component: dynamic template function", () => {
 });
 
 Deno.test("component: multiple stylesheets in array", () => {
-  const Ctor = component("test-multi-styles", {
+  const Ctor = defineWebComponent("test-multi-styles", {
     style: [":host { margin: 0; }", ":host { padding: 0; }"],
   });
 
@@ -464,7 +464,7 @@ Deno.test("component: multiple stylesheets in array", () => {
 
 Deno.test("component: onAdopted lifecycle callback", () => {
   let adopted = 0;
-  const Ctor = component("test-adopted", {
+  const Ctor = defineWebComponent("test-adopted", {
     onAdopted(el) {
       assert(el !== null);
       adopted++;
@@ -480,7 +480,7 @@ Deno.test("component: callback definition declares defaulted observed attributes
   const changes: AttributeChange[] = [];
   let connectedElement: ComponentElement | null = null;
 
-  const Ctor = component("test-definition-api", ({
+  const Ctor = defineWebComponent("test-definition-api", ({
     attributeChangedCallback,
     connectedCallback,
     defineObservedAttribute,
@@ -497,14 +497,15 @@ Deno.test("component: callback definition declares defaulted observed attributes
   assertEquals(Ctor.observedAttributes, ["name"]);
   const el = new Ctor();
   assertEquals(el.observedAttribute.name, "John");
-  assertEquals(changes, [{ name: "name", oldValue: null, newValue: "John" }]);
+  assertEquals(changes, []);
 
   el.connectedCallback?.();
   assert(connectedElement === el);
+  assertEquals(changes, [{ name: "name", oldValue: null, newValue: "John" }]);
 });
 
 Deno.test("component: gives every element a distinct state object", () => {
-  const Ctor = component("test-component-state", ({ defineState }) => {
+  const Ctor = defineWebComponent("test-component-state", ({ defineState }) => {
     defineState({ count: 0 });
   });
 
@@ -518,7 +519,7 @@ Deno.test("component: gives every element a distinct state object", () => {
 
 Deno.test("component: callback definition adds custom prototype properties", () => {
   let enabled = false;
-  const Ctor = component("test-custom-properties", ({ defineProperty }) => {
+  const Ctor = defineWebComponent("test-custom-properties", ({ defineProperty }) => {
     defineProperty("answer", 42);
     defineProperty("greeting", () => "Hello");
     defineProperty("enabled", {
@@ -541,7 +542,7 @@ Deno.test("component: callback definition adds custom prototype properties", () 
 });
 
 Deno.test("component: avoids re-registering existing custom element", () => {
-  const Ctor1 = component("test-dup-reg", {});
-  const Ctor2 = component("test-dup-reg", {});
+  const Ctor1 = defineWebComponent("test-dup-reg", {});
+  const Ctor2 = defineWebComponent("test-dup-reg", {});
   assertEquals(Ctor1, Ctor2);
 });

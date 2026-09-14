@@ -1,4 +1,4 @@
-import { component } from "../../../framework/component/component.ts";
+import { defineWebComponent } from "../../../framework/component/component.ts";
 import { html } from "../../../framework/html/client_html_renderer.ts";
 
 export type SaveStatus = "" | "saved" | "unsaved";
@@ -8,7 +8,7 @@ export function setSaveStatus(element: HTMLElement, status: SaveStatus, message:
   element.setAttribute("message", message);
 }
 
-component("save-status", ({ defineObservedAttribute, defineRender, defineStyles }) => {
+defineWebComponent("save-status", ({ defineObservedAttribute, defineRender, defineStyles }) => {
   defineStyles(/* css */ `
     :host {
       align-items: center;

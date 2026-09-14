@@ -10,6 +10,7 @@ import "./client/editor-statusbar.ts";
 import "./client/editor-toolbar.ts";
 import "./client/save-status.ts";
 import type { EditorSidebar } from "./client/editor-sidebar.ts";
+import type { EditorStatusbar } from "./client/editor-statusbar.ts";
 import { parseManuscript } from "./client/data.ts";
 import { executeEditorCommand } from "./client/editor-commands.ts";
 import { editorEvents } from "./client/editor-events.ts";
@@ -35,6 +36,7 @@ const elements: EditorElements = {
   editor: element("#editor"),
   chapterList: element("#chapter-list"),
   sidebar: element<EditorSidebar>("#editor-sidebar"),
+  statusbar: element<EditorStatusbar>("editor-statusbar"),
   chapterTitle: element<HTMLInputElement>("#chapter-title"),
   manuscriptTitle: element<HTMLInputElement>("#manuscript-title"),
   fileInput: element<HTMLInputElement>("#file-input"),
@@ -113,7 +115,7 @@ function changed(): void {
   state.hasUnsavedChanges = true;
   saveLocal(state.manuscript, state.activeChapter, state.hasUnsavedChanges);
   updateChangedStatus(elements.saveStatus);
-  updateStats(state.manuscript, state.activeChapter);
+  updateStats(state.manuscript, state.activeChapter, elements.statusbar);
 }
 
 editorEvents.on("command", ({ command, target, value }) => {
@@ -195,9 +197,7 @@ element("#add-chapter").addEventListener("click", () => {
   addChapter(elements.editor, elements.chapterTitle, actionCallbacks);
 });
 
-const sidebarToggle = element("#sidebar-toggle");
-
-sidebarToggle.addEventListener("click", () => {
+editorEvents.on("toggleSidebar", () => {
   elements.sidebar.toggle();
 });
 

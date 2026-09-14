@@ -11,13 +11,13 @@ Do not use the component library merely to wrap static server-rendered markup wi
 
 ## Component library
 
-Use `component` from `src/framework/component/component.ts` rather than writing a new `class extends HTMLElement` directly.
+Use `defineWebComponent` from `src/framework/component/component.ts` rather than writing a new `class extends HTMLElement` directly.
 
 ```ts
-import { component } from "../../../framework/component/component.ts";
+import { defineWebComponent } from "../../../framework/component/component.ts";
 import { html } from "../../../framework/html/client_html_renderer.ts";
 
-component(
+defineWebComponent(
   "example-widget",
   ({
     connectedCallback,

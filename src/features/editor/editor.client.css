@@ -9,9 +9,7 @@
     width: 100vw;
 }
 
-.editor-topbar,
-.editor-statusbar,
-editor-statusbar {
+.editor-topbar {
     align-items: center;
     background: var(--surface);
     border-color: var(--border);
@@ -28,14 +26,6 @@ editor-statusbar {
 .editor-topbar {
     border-bottom: 1px solid var(--border);
     z-index: 50;
-}
-
-.editor-statusbar,
-editor-statusbar {
-    border-top: 1px solid var(--border);
-    color: var(--muted);
-    font-size: 0.75rem;
-    overflow: hidden;
 }
 
 .topbar-right {
@@ -58,7 +48,6 @@ editor-statusbar {
 
 .editor-topbar button,
 .editor-topbar .button,
-.editor-statusbar button,
 .sidebar-heading button {
     background: transparent;
     border: 1px solid var(--border);
@@ -77,14 +66,12 @@ editor-statusbar {
     color: var(--accent-text);
 }
 
-.editor-topbar button.borderless,
-.editor-statusbar button.borderless {
+.editor-topbar button.borderless {
     border-color: transparent;
 }
 
 .editor-topbar button:active:not(:disabled),
 .editor-topbar .button:active:not(.disabled),
-.editor-statusbar button:active:not(:disabled),
 .sidebar-heading button:active:not(:disabled) {
     background: var(--surface-sunken);
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
@@ -101,7 +88,6 @@ editor-statusbar {
 
 .editor-topbar button:disabled,
 .editor-topbar .button:disabled,
-.editor-statusbar button:disabled,
 .sidebar-heading button:disabled {
     box-shadow: none;
     cursor: not-allowed;
@@ -110,7 +96,6 @@ editor-statusbar {
 }
 
 .editor-topbar button.small,
-.editor-statusbar button.small,
 .sidebar-heading button.small {
     align-items: center;
     border-radius: 0.3rem;
@@ -119,15 +104,6 @@ editor-statusbar {
     gap: 0.35rem;
     min-height: 1.6rem;
     padding: 0.2rem 0.5rem;
-}
-
-.editor-statusbar button.small kbd {
-    background: var(--surface-sunken);
-    border: 1px solid var(--border);
-    border-radius: 0.25rem;
-    color: var(--muted);
-    font-size: 0.65rem;
-    padding: 0.05rem 0.3rem;
 }
 
 .menu-toggle {
@@ -335,32 +311,6 @@ editor-statusbar {
     max-width: 100%;
     min-width: 0;
     overflow: hidden;
-}
-
-#sidebar-toggle {
-    flex-shrink: 0;
-}
-
-.statusbar-right {
-    align-items: center;
-    display: flex;
-    flex-shrink: 1;
-    gap: 0.5rem;
-    min-width: 0;
-}
-
-#chapter-stats,
-#total-stats {
-    flex-shrink: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.stat-divider {
-    color: var(--muted);
-    font-size: 0.6rem;
 }
 
 .save-status-group {
@@ -614,11 +564,6 @@ editor-canvas > * + * {
         max-width: 100%;
         padding: 1rem;
     }
-
-    .editor-statusbar {
-        gap: 0.5rem;
-        padding: 0.4rem 0.75rem;
-    }
 }
 
 @media (max-width: 36rem) {
@@ -645,9 +590,5 @@ editor-canvas > * + * {
         font-size: 1rem;
         line-height: 1.6;
         padding-top: 0.5rem;
-    }
-
-    .editor-statusbar {
-        font-size: 0.75rem;
     }
 }

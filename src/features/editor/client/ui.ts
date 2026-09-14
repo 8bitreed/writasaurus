@@ -38,20 +38,22 @@ export function render(
     });
     return row;
   }));
-  updateStats(manuscript, activeChapter);
+  updateStats(manuscript, activeChapter, elements.statusbar);
 }
 
-export function updateStats(manuscript: Manuscript, activeChapter: number): void {
+export function updateStats(
+  manuscript: Manuscript,
+  activeChapter: number,
+  statusbar: EditorElements["statusbar"],
+): void {
   const current = manuscript.chapters[activeChapter];
-  const wordsPerPage = getWordsPerPagePreference();
-  const currentWords = current?.wordCount ?? 0;
-  const total = manuscript.chapters.reduce((sum, item) => sum + item.wordCount, 0);
-  element("#chapter-stats").textContent = `Chapter: ${currentWords.toLocaleString()} words · ${
-    (currentWords / wordsPerPage).toFixed(1)
-  } pages`;
-  element("#total-stats").textContent = `Manuscript: ${total.toLocaleString()} words · ${
-    (total / wordsPerPage).toFixed(1)
-  } pages`;
+  const totalWords = manuscript.chapters.reduce((sum, item) => sum + item.wordCount, 0);
+  statusbar.setStats({
+    chapterWords: current?.wordCount ?? 0,
+    chapterChars: current?.charCount ?? 0,
+    totalWords,
+    wordsPerPage: getWordsPerPagePreference(),
+  });
   element("#sidebar-stats").textContent = `${manuscript.chapters.length} chapter${
     manuscript.chapters.length === 1 ? "" : "s"
   }`;

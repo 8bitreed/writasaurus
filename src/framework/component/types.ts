@@ -60,14 +60,14 @@ export type AttributeChangedCallback<E extends HTMLElement = HTMLElement> = (
 ) => void;
 
 /**
- * Registration helpers passed to the callback form of `component`.
+ * Registration helpers passed to the callback form of `defineWebComponent`.
  *
  * The helpers `render`, `$`, and `$$` are bound to the element currently
  * executing a lifecycle callback, so lifecycle functions may use the concise
  * closure style shown below:
  *
  * ```ts
- * component("user-card", ({ connectedCallback, $, defineRender }) => {
+ * defineWebComponent("user-card", ({ connectedCallback, $, defineRender }) => {
  *   connectedCallback(() => $("button")?.focus());
  *   defineRender((element) => html`<button>${element.observedAttribute.name}</button>`);
  * });

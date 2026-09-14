@@ -77,17 +77,7 @@ export const editorView = createView((ctx, props: Props) => {
         </div>
       </main>
 
-      <editor-statusbar class="editor-statusbar">
-        <button type="button" id="sidebar-toggle" class="small" aria-label="Toggle chapters panel"
-          title="Toggle chapters panel (Ctrl+B)">
-          Chapters <kbd>Ctrl+B</kbd>
-        </button>
-        <div class="statusbar-right">
-          <span id="chapter-stats">Chapter: 0 words</span>
-          <span class="stat-divider" aria-hidden="true">|</span>
-          <span id="total-stats">Manuscript: 0 words</span>
-        </div>
-      </editor-statusbar>
+      <editor-statusbar></editor-statusbar>
     `,
   });
 });

@@ -6,6 +6,7 @@ export interface EditorEvents {
     target: string;
     value?: string;
   };
+  toggleSidebar: undefined;
 }
 
 export const editorEvents = createEventBus<EditorEvents>();
