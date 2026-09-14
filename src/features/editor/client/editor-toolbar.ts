@@ -1,4 +1,4 @@
-import { defineWebComponent } from "../../../framework/web-components/web-component-builder.ts";
+import { defineWebComponent } from "../../../framework/web-components/index.ts";
 import { html } from "../../../framework/html/client_html_renderer.ts";
 import { editorEvents } from "./editor-events.ts";
 

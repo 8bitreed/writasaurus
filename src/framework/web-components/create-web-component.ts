@@ -20,6 +20,7 @@ export interface WebComponentDefinition {
   styles: readonly string[];
   shadow: boolean | ShadowRootInit;
   properties: ReadonlyMap<PropertyKey, PropertyDescriptor>;
+  methods: ReadonlyMap<string, (element: RuntimeComponentElement) => (...args: never[]) => unknown>;
   render?: (element: RuntimeComponentElement) => TemplateResult;
   connected?: (element: RuntimeComponentElement) => void;
   disconnected?: (element: RuntimeComponentElement) => void;
@@ -85,6 +86,13 @@ export function registerWebComponent(definition: WebComponentDefinition): Custom
       this.state = reactive({ ...definition.stateFactory() }, () => {
         if (this.#mounted) this.render();
       });
+      for (const [name, factory] of definition.methods) {
+        Object.defineProperty(this, name, {
+          configurable: true,
+          value: factory(this),
+          writable: true,
+        });
+      }
     }
     get observedAttribute(): Readonly<Record<string, AttributeValue>> {
       return new Proxy({} as Record<string, AttributeValue>, {

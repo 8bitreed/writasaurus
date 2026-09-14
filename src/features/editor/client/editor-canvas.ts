@@ -1,4 +1,4 @@
-import { defineWebComponent } from "../../../framework/web-components/web-component-builder.ts";
+import { defineWebComponent } from "../../../framework/web-components/index.ts";
 import { executeEditorCommand } from "./editor-commands.ts";
 
 function handlePaste(event: Event): void {

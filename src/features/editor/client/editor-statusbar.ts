@@ -1,7 +1,7 @@
 import {
   defineWebComponent,
   type WebComponentElement,
-} from "../../../framework/web-components/web-component-builder.ts";
+} from "../../../framework/web-components/index.ts";
 import { html } from "../../../framework/html/client_html_renderer.ts";
 import { getWordsPerPagePreference } from "../../../lib/settings.ts";
 import { editorEvents } from "./editor-events.ts";

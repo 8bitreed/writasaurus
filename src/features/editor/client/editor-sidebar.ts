@@ -1,7 +1,7 @@
 import {
   defineWebComponent,
   type WebComponentElement,
-} from "../../../framework/web-components/web-component-builder.ts";
+} from "../../../framework/web-components/index.ts";
 
 export interface EditorSidebar extends WebComponentElement<Record<string, never>> {
   collapsed: boolean;

@@ -19,6 +19,7 @@ export const aboutView = createView((ctx) => {
         <main class="about-content">
           <section class="about-card">
             <h2>About Writasaurus</h2>
+            <about-counter></about-counter>
             <p>
               Writasaurus is a local-first manuscript editor designed for focused long-form writing.
               Organize your chapters, track word counts in real time, and save directly to your device
