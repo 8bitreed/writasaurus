@@ -437,7 +437,7 @@ Deno.test("component: element helpers ($$, emit, update)", () => {
 Deno.test("component: dynamic template function", () => {
   const Ctor = component("test-dynamic-template", {
     template(el) {
-      return `<button id="dyn-btn">Dynamic for ${el.tagName}</button>`;
+      return /* html */ `<button id="dyn-btn">Dynamic for ${el.tagName}</button>`;
     },
   });
 
