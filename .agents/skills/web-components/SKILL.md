@@ -120,3 +120,4 @@ For rich-text toolbar buttons, prevent default on `mousedown` for command button
 - Import component modules for their registration side effects from the feature's `.client.ts` entry point. Do not rely on type-only imports.
 - Browser entry files use `.client.ts`; supporting modules use normal `.ts` filenames.
 - Run focused formatting, `deno check` for the affected client entry point, and relevant tests after changes. Run `deno task build` when views or bundled assets change.
+- Put real-browser component integration tests in `tests/browser/` and run `deno task test:browser`. This task builds the assets, starts the application in-process, and launches Playwright Chromium. Install its browser binary once with `deno run -A npm:playwright install chromium`.

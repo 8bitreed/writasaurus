@@ -3,14 +3,13 @@ import { applyFontPreference, getFontPreference } from "../../lib/settings.ts";
 import { registerReturnToEditorShortcut } from "../../lib/shortcuts.ts";
 import { syncTruncationTooltip } from "../../lib/text/text.ts";
 import type { EditorElements } from "./client/types.ts";
-// Imported for its side effect of registering the custom elements used on this page
-// (editor-sidebar, editor-canvas, etc.) via customElements.define(). `EditorSidebar` is
-// only referenced as a type below, so a plain named import would be tree-shaken away by
-// the bundler, silently dropping the registration and leaving the elements un-upgraded.
-import "./client/components.ts";
+// Imported for their side effects: each module registers its custom element.
+import "./client/editor-canvas.ts";
+import "./client/editor-sidebar.ts";
+import "./client/editor-statusbar.ts";
 import "./client/editor-toolbar.ts";
 import "./client/save-status.ts";
-import type { EditorSidebar } from "./client/components.ts";
+import type { EditorSidebar } from "./client/editor-sidebar.ts";
 import { parseManuscript } from "./client/data.ts";
 import { executeEditorCommand } from "./client/editor-commands.ts";
 import { editorEvents } from "./client/editor-events.ts";

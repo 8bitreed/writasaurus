@@ -1,4 +1,4 @@
-import type { EditorSidebar } from "./components.ts";
+import type { EditorSidebar } from "./editor-sidebar.ts";
 
 export interface Chapter {
   id: string;

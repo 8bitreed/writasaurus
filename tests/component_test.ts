@@ -517,14 +517,27 @@ Deno.test("component: gives every element a distinct state object", () => {
 });
 
 Deno.test("component: callback definition adds custom prototype properties", () => {
+  let enabled = false;
   const Ctor = component("test-custom-properties", ({ defineProperty }) => {
     defineProperty("answer", 42);
     defineProperty("greeting", () => "Hello");
+    defineProperty("enabled", {
+      get: () => enabled,
+      set: (value: boolean) => {
+        enabled = value;
+      },
+    });
   });
 
-  const el = new Ctor() as ComponentElement & { answer: number; greeting(): string };
+  const el = new Ctor() as ComponentElement & {
+    answer: number;
+    enabled: boolean;
+    greeting(): string;
+  };
   assertEquals(el.answer, 42);
   assertEquals(el.greeting(), "Hello");
+  el.enabled = true;
+  assertEquals(el.enabled, true);
 });
 
 Deno.test("component: avoids re-registering existing custom element", () => {

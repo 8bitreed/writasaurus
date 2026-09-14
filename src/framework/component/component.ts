@@ -49,6 +49,13 @@ function isReactiveStateObject(value: unknown): value is object {
   return Array.isArray(value) || prototype === Object.prototype || prototype === null;
 }
 
+function isPropertyDescriptor(value: unknown): value is PropertyDescriptor {
+  if (value === null || typeof value !== "object") return false;
+  return ["configurable", "enumerable", "get", "set", "value", "writable"].some((key) =>
+    Object.hasOwn(value, key)
+  );
+}
+
 function createReactiveState(
   initialState: Record<string, unknown>,
   onChange: () => void,
@@ -186,7 +193,10 @@ export function component<E extends HTMLElement = HTMLElement>(
         if (typeof name === "string" && RESERVED_PROPERTY_NAMES.has(name)) {
           throw new Error(`Cannot redefine component property "${name}".`);
         }
-        definition.properties.set(name, { configurable: true, value, writable: true });
+        definition.properties.set(
+          name,
+          isPropertyDescriptor(value) ? value : { configurable: true, value, writable: true },
+        );
       },
       defineState: (initialState) => {
         if (typeof initialState === "function") {
