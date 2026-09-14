@@ -1,3 +1,5 @@
+import { getWordsPerPagePreference } from "../../../lib/settings.ts";
+
 export class EditorToolbar extends HTMLElement {
   connectedCallback(): void {
     this.addEventListener("click", this.#handleClick);
@@ -93,6 +95,7 @@ export class EditorCanvas extends HTMLElement {
     // A raw tab character collapses to a single space under normal CSS
     // whitespace rules, so insert non-breaking spaces to render a visible indent.
     document.execCommand("insertText", false, "\u00A0\u00A0\u00A0\u00A0");
+    this.dispatchEvent(new Event("input", { bubbles: true }));
   };
 }
 
@@ -109,9 +112,12 @@ export class EditorStatusbar extends HTMLElement {
     chapterWords: number;
     chapterChars: number;
     totalWords: number;
+    wordsPerPage?: number;
   }): void {
     if (!this.#chapterStats) this.#chapterStats = this.querySelector("#chapter-stats");
     if (!this.#totalStats) this.#totalStats = this.querySelector("#total-stats");
+
+    const wordsPerPage = options.wordsPerPage ?? getWordsPerPagePreference();
 
     if (this.#chapterStats) {
       this.#chapterStats.textContent =
@@ -119,7 +125,7 @@ export class EditorStatusbar extends HTMLElement {
     }
     if (this.#totalStats) {
       this.#totalStats.textContent = `Manuscript: ${options.totalWords.toLocaleString()} words · ${
-        (options.totalWords / 300).toFixed(1)
+        (options.totalWords / wordsPerPage).toFixed(1)
       } pages`;
     }
   }

@@ -2,6 +2,7 @@ import { blankManuscript, parseManuscript, SAMPLE_NOVEL } from "../editor/client
 import { openFile } from "../editor/client/fileio.ts";
 import { state } from "../editor/client/state.ts";
 import { saveLocal, setSkipWelcome, storeHandle } from "../editor/client/storage.ts";
+import { registerReturnToEditorShortcut } from "../../lib/shortcuts.ts";
 
 try {
   const statusRes = await fetch("/api/editor/status");
@@ -74,4 +75,9 @@ sampleButton?.addEventListener("click", async () => {
 const returnLink = document.querySelector<HTMLAnchorElement>(".return-link");
 returnLink?.addEventListener("click", () => {
   setSkipWelcome();
+});
+
+registerReturnToEditorShortcut(() => {
+  setSkipWelcome();
+  navigateToEditor();
 });

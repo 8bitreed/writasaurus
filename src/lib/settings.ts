@@ -86,8 +86,11 @@ export const FONT_MAP: Record<FontOption, FontDefinition> = Object.fromEntries(
   FONT_OPTIONS.map((f) => [f.id, f]),
 ) as Record<FontOption, FontDefinition>;
 
-export const DEFAULT_FONT: FontOption = "serif";
+export const DEFAULT_FONT: FontOption = "system";
 export const SETTINGS_KEY = "writasaurus-settings-font";
+
+export const DEFAULT_WORDS_PER_PAGE = 300;
+export const SETTINGS_WORDS_PER_PAGE_KEY = "writasaurus-settings-words-per-page";
 
 export function getFontPreference(): FontOption {
   try {
@@ -114,5 +117,33 @@ export function applyFontPreference(font: FontOption): void {
   if (typeof document !== "undefined") {
     document.documentElement.dataset.font = definition.id;
     document.documentElement.style.setProperty("--editor-font", definition.family);
+  }
+}
+
+export function getWordsPerPagePreference(): number {
+  try {
+    const saved = localStorage.getItem(SETTINGS_WORDS_PER_PAGE_KEY);
+    if (saved !== null) {
+      const parsed = parseInt(saved, 10);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        return parsed;
+      }
+    }
+  } catch {
+    // Ignore storage errors in restricted contexts
+  }
+  return DEFAULT_WORDS_PER_PAGE;
+}
+
+export function saveWordsPerPagePreference(wordsPerPage: number): void {
+  try {
+    if (Number.isFinite(wordsPerPage) && wordsPerPage > 0) {
+      localStorage.setItem(
+        SETTINGS_WORDS_PER_PAGE_KEY,
+        String(Math.round(wordsPerPage)),
+      );
+    }
+  } catch (err) {
+    console.warn("Could not save words per page preference", err);
   }
 }

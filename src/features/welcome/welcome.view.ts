@@ -27,7 +27,8 @@ export const welcomeView = createView((ctx) => {
               <input id="welcome-file-input" type="file" accept=".md,.markdown,.txt" hidden>
             </div>
             <div class="welcome-footer">
-              <a href="/" class="return-link">← Return to Editor</a>
+              <a href="/" class="return-link"
+                title="Return to Editor (Ctrl+Shift+E)">← Return to Editor</a>
             </div>
           </section>
         </main>

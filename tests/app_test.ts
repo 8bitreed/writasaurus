@@ -63,6 +63,8 @@ Deno.test("renders about page with description and return to editor link", async
   assert(page.includes("Return to Editor"));
   assert(page.includes("/assets/features-about-about.client-"));
   assert(page.includes(".css"));
+  assert(page.includes("/assets/features-about-about.client-"));
+  assert(page.includes(".js"));
 });
 
 Deno.test("renders settings page with font options and return to editor link", async () => {
@@ -75,6 +77,8 @@ Deno.test("renders settings page with font options and return to editor link", a
   assert(page.includes("System Font"));
   assert(page.includes("Standard Serif"));
   assert(page.includes("Standard Sans-Serif"));
+  assert(page.includes("Words per Page"));
+  assert(page.includes("words-per-page-input"));
   assert(page.includes('href="/"'));
   assert(page.includes("Return to Editor"));
   assert(page.includes("/assets/features-settings-settings.client-"));

@@ -1,12 +1,16 @@
 import {
   applyFontPreference,
   DEFAULT_FONT,
+  DEFAULT_WORDS_PER_PAGE,
   FONT_MAP,
   FONT_OPTIONS,
   type FontOption,
   getFontPreference,
+  getWordsPerPagePreference,
   saveFontPreference,
+  saveWordsPerPagePreference,
   SETTINGS_KEY,
+  SETTINGS_WORDS_PER_PAGE_KEY,
 } from "../src/lib/settings.ts";
 
 function assert(condition: unknown, message = "Assertion failed"): asserts condition {
@@ -29,15 +33,15 @@ Deno.test("settings: font options include system, serif, and sans-serif choices"
   assert(ids.includes("arial"));
   assert(ids.includes("helvetica"));
 
-  assertEquals(DEFAULT_FONT, "serif");
+  assertEquals(DEFAULT_FONT, "system");
   assert(FONT_MAP.system.family.includes("system-ui"));
   assert(FONT_MAP.serif.family.includes("serif"));
   assert(FONT_MAP["sans-serif"].family.includes("sans-serif"));
 });
 
-Deno.test("settings: font preference defaults to serif when empty", () => {
+Deno.test("settings: font preference defaults to system when empty", () => {
   localStorage.removeItem(SETTINGS_KEY);
-  assertEquals(getFontPreference(), "serif");
+  assertEquals(getFontPreference(), "system");
 });
 
 Deno.test("settings: saving and reading font preference round-trips", () => {
@@ -66,4 +70,37 @@ Deno.test("settings: applyFontPreference updates dataset and style property", ()
   // in Deno CLI runtime without DOM, it gracefully does not throw
   applyFontPreference("system");
   applyFontPreference("serif");
+});
+
+Deno.test("settings: words per page defaults to 300 when empty", () => {
+  localStorage.removeItem(SETTINGS_WORDS_PER_PAGE_KEY);
+  assertEquals(DEFAULT_WORDS_PER_PAGE, 300);
+  assertEquals(getWordsPerPagePreference(), 300);
+});
+
+Deno.test("settings: saving and reading words per page preference round-trips", () => {
+  try {
+    const values = [250, 300, 350, 500];
+    for (const val of values) {
+      saveWordsPerPagePreference(val);
+      assertEquals(getWordsPerPagePreference(), val);
+    }
+  } finally {
+    localStorage.removeItem(SETTINGS_WORDS_PER_PAGE_KEY);
+  }
+});
+
+Deno.test("settings: invalid stored words per page value falls back to default 300", () => {
+  try {
+    localStorage.setItem(SETTINGS_WORDS_PER_PAGE_KEY, "not-a-number");
+    assertEquals(getWordsPerPagePreference(), 300);
+
+    localStorage.setItem(SETTINGS_WORDS_PER_PAGE_KEY, "0");
+    assertEquals(getWordsPerPagePreference(), 300);
+
+    localStorage.setItem(SETTINGS_WORDS_PER_PAGE_KEY, "-100");
+    assertEquals(getWordsPerPagePreference(), 300);
+  } finally {
+    localStorage.removeItem(SETTINGS_WORDS_PER_PAGE_KEY);
+  }
 });

@@ -2,6 +2,14 @@
  * Escapes HTML special characters in a string to prevent XSS attacks. Look at dom-utilties for general purpose use of this function.
  */
 function escapeHtml(value: string): string {
+  if (typeof document === "undefined") {
+    return value
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
   const node = document.createElement("div");
   node.textContent = value;
   return node.innerHTML;
@@ -24,19 +32,24 @@ export function inlineMarkdown(text: string): string {
 export function markdownToHtml(markdown: string): string {
   if (!markdown.trim()) return "<p></p>";
   return markdown.split(/\r?\n\r?\n/).map((part) => {
-    const value = part.trim();
-    if (value.startsWith("### ")) return `<h3>${inlineMarkdown(value.slice(4))}</h3>`;
-    if (value.startsWith("## ")) return `<h2>${inlineMarkdown(value.slice(3))}</h2>`;
-    if (value.startsWith("# ")) return `<h1>${inlineMarkdown(value.slice(2))}</h1>`;
-    if (value.startsWith("> ")) return `<blockquote>${inlineMarkdown(value.slice(2))}</blockquote>`;
-    const lines = value.split(/\r?\n/);
-    if (lines.every((line) => line.startsWith("- "))) {
+    const value = part.replace(/^[\r\n]+/, "").replace(/[\r\n\s]+$/, "");
+    if (!value) return "";
+    const normalized = value.replace(/\t/g, "\u00A0\u00A0\u00A0\u00A0");
+    const trimmedStart = normalized.trimStart();
+    if (trimmedStart.startsWith("### ")) return `<h3>${inlineMarkdown(trimmedStart.slice(4))}</h3>`;
+    if (trimmedStart.startsWith("## ")) return `<h2>${inlineMarkdown(trimmedStart.slice(3))}</h2>`;
+    if (trimmedStart.startsWith("# ")) return `<h1>${inlineMarkdown(trimmedStart.slice(2))}</h1>`;
+    if (trimmedStart.startsWith("> ")) {
+      return `<blockquote>${inlineMarkdown(trimmedStart.slice(2))}</blockquote>`;
+    }
+    const lines = normalized.split(/\r?\n/);
+    if (lines.every((line) => line.trimStart().startsWith("- "))) {
       return `<ul>${
-        lines.map((line) => `<li>${inlineMarkdown(line.slice(2))}</li>`).join("")
+        lines.map((line) => `<li>${inlineMarkdown(line.trimStart().slice(2))}</li>`).join("")
       }</ul>`;
     }
-    return `<p>${inlineMarkdown(value).replace(/\r?\n/g, "<br>")}</p>`;
-  }).join("");
+    return `<p>${inlineMarkdown(normalized).replace(/\r?\n/g, "<br>")}</p>`;
+  }).filter(Boolean).join("");
 }
 
 /**
@@ -67,5 +80,9 @@ function nodeToMarkdown(node: Node): string {
 export function htmlToMarkdown(html: string): string {
   const node = document.createElement("div");
   node.innerHTML = html;
-  return [...node.childNodes].map(nodeToMarkdown).join("").trim();
+  return [...node.childNodes]
+    .map(nodeToMarkdown)
+    .join("")
+    .replace(/^[\r\n]+/, "")
+    .replace(/[\r\n]+$/, "");
 }

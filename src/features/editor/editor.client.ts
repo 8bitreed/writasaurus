@@ -1,5 +1,6 @@
 import { element } from "../../lib/utilties/dom-utilities.ts";
 import { applyFontPreference, getFontPreference } from "../../lib/settings.ts";
+import { registerReturnToEditorShortcut } from "../../lib/shortcuts.ts";
 import { syncTruncationTooltip } from "../../lib/text/text.ts";
 import type { EditorElements } from "./client/types.ts";
 // Imported for its side effect of registering the custom elements used on this page
@@ -119,9 +120,17 @@ elements.editor.addEventListener("command", changed);
 const appMenu = element<HTMLElement>("#app-menu");
 const menuToggle = document.querySelector<HTMLButtonElement>("#menu-toggle");
 
-function openMenu(): void {
+function focusFirstMenuItem(): void {
+  const firstItem = appMenu.querySelector<HTMLElement>(".menu-item");
+  firstItem?.focus();
+}
+
+function openMenu(focusFirst = false): void {
   appMenu.hidden = false;
   menuToggle?.setAttribute("aria-expanded", "true");
+  if (focusFirst) {
+    focusFirstMenuItem();
+  }
 }
 
 function closeMenu(): void {
@@ -129,9 +138,9 @@ function closeMenu(): void {
   menuToggle?.setAttribute("aria-expanded", "false");
 }
 
-function toggleMenu(): void {
+function toggleMenu(focusFirst = false): void {
   if (appMenu.hidden) {
-    openMenu();
+    openMenu(focusFirst);
   } else {
     closeMenu();
   }
@@ -215,6 +224,29 @@ globalThis.addEventListener("keydown", (event) => {
     event.preventDefault();
     globalThis.location.href = "/settings";
   }
+});
+
+// Toggle hamburger menu with Ctrl+M
+globalThis.addEventListener("keydown", (event) => {
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "m") {
+    event.preventDefault();
+    if (appMenu.hidden) {
+      openMenu(true);
+    } else {
+      closeMenu();
+      menuToggle?.focus();
+    }
+  } else if (event.key === "Escape" && !appMenu.hidden) {
+    event.preventDefault();
+    closeMenu();
+    menuToggle?.focus();
+  }
+});
+
+// Return to editor canvas with Ctrl+Shift+E
+registerReturnToEditorShortcut(() => {
+  closeMenu();
+  elements.editor.focus();
 });
 
 declare global {

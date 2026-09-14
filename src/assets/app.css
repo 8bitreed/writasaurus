@@ -103,6 +103,12 @@
   --accent-text: #161412;
 }
 
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
 body {
   background: var(--bg);
   color: var(--text);

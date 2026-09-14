@@ -35,6 +35,7 @@ export const editorView = createView((ctx, props: Props) => {
             <button type="button" class="small" data-command="insertUnorderedList">List</button>
           </editor-toolbar>
           <button type="button" id="menu-toggle" class="menu-toggle small" aria-label="Menu"
+            title="Menu (Ctrl+M)"
             aria-expanded="false" aria-haspopup="true">
             <span class="hamburger-icon" aria-hidden="true">
               <span></span>
@@ -44,7 +45,10 @@ export const editorView = createView((ctx, props: Props) => {
           </button>
         </div>
         <nav id="app-menu" class="app-menu" hidden aria-label="Application menu">
-          <button type="button" id="save-file" class="menu-item primary">Save</button>
+          <button type="button" id="save-file" class="menu-item primary">
+            <span>Save</span>
+            <kbd>Ctrl+S</kbd>
+          </button>
           <a href="/open" class="menu-item" id="open-file">Open</a>
           <div class="menu-divider"></div>
           <a href="/settings" class="menu-item" id="settings-link">Settings</a>
@@ -65,13 +69,15 @@ export const editorView = createView((ctx, props: Props) => {
             <ol id="chapter-list"></ol>
             <span id="sidebar-stats">1 chapter</span>
           </editor-sidebar>
-          <section class="writing-area">
-            <input id="chapter-title" value="Chapter " aria-label="Chapter title">
-            <editor-canvas id="editor" class="editor-canvas" contenteditable="true" role="textbox"
-              aria-multiline="true">
-              <p>Begin the next chapter...</p>
-            </editor-canvas>
-          </section>
+          <div class="editor-viewport">
+            <section class="writing-area">
+              <input id="chapter-title" value="Chapter " aria-label="Chapter title">
+              <editor-canvas id="editor" class="editor-canvas" contenteditable="true" role="textbox"
+                aria-multiline="true">
+                <p>Begin the next chapter...</p>
+              </editor-canvas>
+            </section>
+          </div>
         </div>
       </main>
 

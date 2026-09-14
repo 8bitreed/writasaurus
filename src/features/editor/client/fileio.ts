@@ -73,7 +73,7 @@ export async function saveToDisk(
       state.desktopFileLoaded = true;
       state.hasUnsavedChanges = false;
       saveLocal(state.manuscript, state.activeChapter, state.hasUnsavedChanges);
-      saveStatus.textContent = `Saved to ${result.name}`;
+      saveStatus.textContent = `Saved`;
       saveStatus.className = "saved";
       element("#filename").textContent = result.name;
       return;

@@ -32,10 +32,10 @@ export const settingsView = createView((ctx) => {
 
               <select id="font-select" class="settings-select">
                 <optgroup label="System">
-                  <option value="system">System Font</option>
+                  <option value="system" selected>System Font</option>
                 </optgroup>
                 <optgroup label="Serif">
-                  <option value="serif" selected>Standard Serif</option>
+                  <option value="serif">Standard Serif</option>
                   <option value="georgia">Georgia</option>
                   <option value="times">Times New Roman</option>
                   <option value="garamond">Garamond</option>
@@ -61,10 +61,30 @@ export const settingsView = createView((ctx) => {
               </div>
             </div>
 
+            <div class="settings-group">
+              <label for="words-per-page-input" class="settings-label">
+                <strong>Words per Page</strong>
+                <span class="settings-help">
+                  Average word count used to calculate estimated page counts (default: 300).
+                </span>
+              </label>
+
+              <input
+                type="number"
+                id="words-per-page-input"
+                class="settings-input"
+                min="50"
+                max="2000"
+                step="10"
+                value="300"
+              >
+            </div>
+
             <div class="settings-status" id="settings-status" aria-live="polite"></div>
 
             <div class="settings-actions">
-              <a href="/" class="button primary return-link">← Return to Editor</a>
+              <a href="/" class="button primary return-link"
+                title="Return to Editor (Ctrl+Shift+E)">← Return to Editor</a>
             </div>
           </section>
         </main>

@@ -1,4 +1,5 @@
 import { element } from "../../../lib/utilties/dom-utilities.ts";
+import { getWordsPerPagePreference } from "../../../lib/settings.ts";
 import type { EditorElements, Manuscript } from "./types.ts";
 
 export function render(
@@ -41,12 +42,14 @@ export function render(
 
 export function updateStats(manuscript: Manuscript, activeChapter: number): void {
   const current = manuscript.chapters[activeChapter];
+  const wordsPerPage = getWordsPerPagePreference();
+  const currentWords = current?.wordCount ?? 0;
   const total = manuscript.chapters.reduce((sum, item) => sum + item.wordCount, 0);
-  element("#chapter-stats").textContent = `Chapter: ${current?.wordCount ?? 0} words · ${
-    ((current?.wordCount ?? 0) / 300).toFixed(1)
+  element("#chapter-stats").textContent = `Chapter: ${currentWords.toLocaleString()} words · ${
+    (currentWords / wordsPerPage).toFixed(1)
   } pages`;
   element("#total-stats").textContent = `Manuscript: ${total.toLocaleString()} words · ${
-    (total / 300).toFixed(1)
+    (total / wordsPerPage).toFixed(1)
   } pages`;
   element("#sidebar-stats").textContent = `${manuscript.chapters.length} chapter${
     manuscript.chapters.length === 1 ? "" : "s"

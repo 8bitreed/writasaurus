@@ -8,6 +8,7 @@ export const aboutView = createView((ctx) => {
     bodyClass: "about-mode",
     scripts: html`
       <link rel="stylesheet" href="${ctx.asset("features/about/about.client.css")}">
+      <script type="module" src="${ctx.asset("features/about/about.client.ts")}"></script>
     `,
     content: html`
       <div class="about-container">
@@ -30,7 +31,8 @@ export const aboutView = createView((ctx) => {
             </p>
 
             <div class="about-actions">
-              <a href="/" class="button primary return-link">← Return to Editor</a>
+              <a href="/" class="button primary return-link"
+                title="Return to Editor (Ctrl+Shift+E)">← Return to Editor</a>
             </div>
           </section>
         </main>

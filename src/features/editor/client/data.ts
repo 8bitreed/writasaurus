@@ -66,9 +66,11 @@ export function parseManuscript(source: string, filename: string): Manuscript {
   let lines: string[] = [];
   const flush = () => {
     if (!lines.some((line) => line.trim()) && chapters.length) return;
-    let markdown = lines.join("\n").trim();
+    let markdown = lines.join("\n").replace(/^[\r\n]+/, "").replace(/[\r\n]+$/, "");
     const heading = markdown.match(/^#\s+(.+)\r?\n?/);
-    if (heading?.[1]?.trim() === title.trim()) markdown = markdown.slice(heading[0].length).trim();
+    if (heading?.[1]?.trim() === title.trim()) {
+      markdown = markdown.slice(heading[0].length).replace(/^[\r\n]+/, "");
+    }
     chapters.push(chapter(title, markdownToHtml(markdown)));
   };
   for (const line of body.split(/\r?\n/)) {
