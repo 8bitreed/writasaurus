@@ -50,6 +50,9 @@ export type WebComponentBuilder<
   connectedCallback(callback: Hook<S, A, Methods>): WebComponentBuilder<S, A, Methods>;
   disconnectedCallback(callback: Hook<S, A, Methods>): WebComponentBuilder<S, A, Methods>;
   defineRender(render: Render<S, A, Methods>): WebComponentBuilder<S, A, Methods>;
+  /** Registers the collected custom-element definition. */
+  define(): CustomElementConstructor;
+  /** @deprecated Use `define()` instead. */
   build(): CustomElementConstructor;
 };
 
@@ -112,7 +115,7 @@ export function createWebComponentBuilder(tagName: string): WebComponentBuilder 
       render = next;
       return builder;
     },
-    build() {
+    define() {
       return registerWebComponent({
         tagName,
         observedAttributes: attrs,
@@ -126,8 +129,16 @@ export function createWebComponentBuilder(tagName: string): WebComponentBuilder 
         disconnected,
       });
     },
+    build() {
+      return builder.define();
+    },
   };
   return builder as unknown as WebComponentBuilder;
+}
+
+/** Starts a fluent custom-element definition. */
+export function createWebComponent(tagName: string): WebComponentBuilder {
+  return createWebComponentBuilder(tagName);
 }
 export function defineWebComponent<
   S extends Record<string, unknown>,
@@ -136,5 +147,5 @@ export function defineWebComponent<
   tag: string,
   definition: (builder: WebComponentBuilder) => WebComponentBuilder<S, A>,
 ): CustomElementConstructor {
-  return definition(createWebComponentBuilder(tag)).build();
+  return definition(createWebComponent(tag)).define();
 }
