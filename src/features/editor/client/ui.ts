@@ -1,5 +1,6 @@
 import { element } from "../../../lib/utilties/dom-utilities.ts";
 import { getWordsPerPagePreference } from "../../../lib/settings.ts";
+import { setSaveStatus } from "./save-status.ts";
 import type { EditorElements, Manuscript } from "./types.ts";
 
 export function render(
@@ -60,13 +61,11 @@ export function updateStatus(
   saveStatus: HTMLElement,
   filename?: string,
 ): void {
-  saveStatus.textContent = filename ? `Saved to ${filename}` : "Saved";
-  saveStatus.className = "saved";
+  setSaveStatus(saveStatus, "saved", filename ? `Saved to ${filename}` : "Saved");
 }
 
 export function updateChangedStatus(
   saveStatus: HTMLElement,
 ): void {
-  saveStatus.textContent = "Unsaved changes";
-  saveStatus.className = "unsaved";
+  setSaveStatus(saveStatus, "unsaved", "Unsaved changes");
 }

@@ -1,0 +1,96 @@
+import { component } from "../../../framework/component/component.ts";
+import { html } from "../../../framework/html/client_html_renderer.ts";
+import { editorEvents } from "./editor-events.ts";
+
+function preserveEditorSelection(event: Event): void {
+  const target = event.target as HTMLElement | null;
+  if (target?.closest("[data-command]")) event.preventDefault();
+}
+
+function handleToolbarClick(event: Event): void {
+  const root = event.currentTarget;
+  if (!(root instanceof ShadowRoot)) return;
+
+  const toolbar = root.host;
+  const target = event.target as HTMLElement | null;
+  const button = target?.closest<HTMLButtonElement>("[data-command]");
+  if (!button || !root.contains(button)) return;
+
+  const command = button.dataset.command;
+  if (!command) return;
+  const value = button.dataset.value;
+  editorEvents.emit("command", {
+    command,
+    target: toolbar.getAttribute("for") || "#editor",
+    value,
+  });
+}
+
+component(
+  "editor-toolbar",
+  ({ connectedCallback, defineRender, defineStyles, disconnectedCallback }) => {
+    defineStyles(/* css */ `
+      :host {
+        align-items: center;
+        display: flex;
+        flex: 0 0 auto;
+        gap: 0.35rem;
+      }
+
+      button {
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 0.35rem;
+        color: var(--text);
+        font: inherit;
+        min-height: 2.25rem;
+        padding: 0.35rem 0.6rem;
+        white-space: nowrap;
+      }
+
+      button.small {
+        align-items: center;
+        border-radius: 0.3rem;
+        display: inline-flex;
+        font-size: 0.72rem;
+        gap: 0.35rem;
+        min-height: 1.6rem;
+        padding: 0.2rem 0.5rem;
+      }
+
+      button:active:not(:disabled) {
+        background: var(--surface-sunken);
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
+        transform: translateY(1px) scale(0.98);
+      }
+
+      button:disabled {
+        box-shadow: none;
+        cursor: not-allowed;
+        opacity: 0.45;
+        transform: none;
+      }
+
+      @media (max-width: 36rem) {
+        :host {
+          display: none;
+        }
+      }
+    `);
+    defineRender(() =>
+      html`
+        <button type="button" class="small" data-command="bold"><strong>B</strong></button>
+        <button type="button" class="small" data-command="italic"><em>I</em></button>
+        <button type="button" class="small" data-command="insertUnorderedList">List</button>
+      `
+    );
+    connectedCallback((toolbar) => {
+      toolbar.root.addEventListener("mousedown", preserveEditorSelection);
+      toolbar.root.addEventListener("click", handleToolbarClick);
+    });
+    disconnectedCallback((toolbar) => {
+      toolbar.root.removeEventListener("mousedown", preserveEditorSelection);
+      toolbar.root.removeEventListener("click", handleToolbarClick);
+    });
+  },
+);

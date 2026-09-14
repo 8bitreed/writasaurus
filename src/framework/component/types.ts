@@ -1,3 +1,5 @@
+import type { TemplateResult } from "../html/client_html_renderer.ts";
+
 export interface AttributeChange {
   name: string;
   oldValue: string | null;
@@ -17,10 +19,15 @@ export type StyleValue = string | CSSStyleSheet;
 
 export interface ComponentElement<E extends HTMLElement = HTMLElement> extends HTMLElement {
   readonly root: ShadowRoot | this;
+  /** Current values of attributes declared with `defineObservedAttribute`. */
+  readonly observedAttribute: Readonly<Record<string, string | null>>;
   $<T extends Element = HTMLElement>(selector: string): T | null;
   $$<T extends Element = HTMLElement>(selector: string): NodeListOf<T>;
   emit<T = unknown>(name: string, detail?: T, options?: CustomEventInit<T>): boolean;
+  /** Re-renders a component declared with `defineRender`, then invokes legacy `onUpdate`. */
   update(detail?: unknown): void;
+  /** Re-renders a component declared with `defineRender`. */
+  render(): void;
   connectedCallback?(): void;
   disconnectedCallback?(): void;
   adoptedCallback?(): void;
@@ -33,6 +40,61 @@ export type ComponentConstructor<E extends HTMLElement = HTMLElement> = {
   prototype: ComponentElement<E>;
 };
 
+export type ComponentRender<E extends HTMLElement = HTMLElement> = (
+  element: ComponentElement<E>,
+) => TemplateResult;
+
+export type ConnectedCallback<E extends HTMLElement = HTMLElement> = (
+  element: ComponentElement<E>,
+) => void;
+export type DisconnectedCallback<E extends HTMLElement = HTMLElement> = ConnectedCallback<E>;
+export type AdoptedCallback<E extends HTMLElement = HTMLElement> = ConnectedCallback<E>;
+export type AttributeChangedCallback<E extends HTMLElement = HTMLElement> = (
+  element: ComponentElement<E>,
+  change: AttributeChange,
+) => void;
+
+/**
+ * Registration helpers passed to the callback form of `component`.
+ *
+ * The helpers `render`, `$`, and `$$` are bound to the element currently
+ * executing a lifecycle callback, so lifecycle functions may use the concise
+ * closure style shown below:
+ *
+ * ```ts
+ * component("user-card", ({ connectedCallback, $, defineRender }) => {
+ *   connectedCallback(() => $("button")?.focus());
+ *   defineRender((element) => html`<button>${element.observedAttribute.name}</button>`);
+ * });
+ * ```
+ */
+export interface ComponentDefinitionApi<E extends HTMLElement = HTMLElement> {
+  readonly observedAttributes: readonly string[];
+  render(): void;
+  $<T extends Element = HTMLElement>(selector: string): T | null;
+  $$<T extends Element = HTMLElement>(selector: string): NodeListOf<T>;
+  connectedCallback(callback: ConnectedCallback<E>): void;
+  disconnectedCallback(callback: DisconnectedCallback<E>): void;
+  adoptedCallback(callback: AdoptedCallback<E>): void;
+  attributeChangedCallback(callback: AttributeChangedCallback<E>): void;
+  /** Configures the component's shadow root. Defaults to an open shadow root. */
+  defineShadow(shadow: boolean | ShadowRootInit): void;
+  /** Adds styles adopted by the component's shadow root. */
+  defineStyles(styles: StyleValue | readonly StyleValue[]): void;
+  /**
+   * Adds a regular method or property to the custom element's prototype.
+   * Lifecycle callback names remain managed by their corresponding
+   * registration helpers.
+   */
+  defineProperty(name: PropertyKey, value: unknown): void;
+  defineObservedAttribute(name: string, defaultValue: string): void;
+  defineRender(render: ComponentRender<E>): void;
+}
+
+export type ComponentDefinition<E extends HTMLElement = HTMLElement> = (
+  api: ComponentDefinitionApi<E>,
+) => void;
+
 export interface ComponentOptions<E extends HTMLElement = HTMLElement> {
   /**
    * Template to inject into the element or shadow root.
@@ -40,53 +102,16 @@ export interface ComponentOptions<E extends HTMLElement = HTMLElement> {
    */
   template?: TemplateValue<E>;
 
-  /**
-   * Style to inject. Can be a CSS string, a CSSStyleSheet, or an array of them.
-   */
+  /** Style to inject. Can be a CSS string, a CSSStyleSheet, or an array of them. */
   style?: StyleValue | readonly StyleValue[];
 
-  /**
-   * Shadow DOM configuration:
-   * - `true`: Attach shadow root with mode: "open"
-   * - `false`: Use light DOM (no shadow root)
-   * - ShadowRootInit object (e.g. `{ mode: "open", delegatesFocus: true }`)
-   * Defaults to `true`.
-   */
+  /** Shadow DOM configuration. Defaults to an open shadow root. */
   shadow?: boolean | ShadowRootInit;
-
-  /**
-   * List of observed attribute names.
-   */
   observedAttributes?: readonly string[];
-
-  /**
-   * Lifecycle: called when the custom element instance is created in the constructor.
-   */
   onInit?(element: ComponentElement<E>): void;
-
-  /**
-   * Lifecycle: called when the custom element is connected to the DOM,
-   * after styles and templates have been injected.
-   */
   onMounted?(element: ComponentElement<E>): void;
-
-  /**
-   * Lifecycle: called when the custom element is disconnected from the DOM.
-   */
   onUnmounted?(element: ComponentElement<E>): void;
-
-  /**
-   * Lifecycle: called when an observed attribute changes or when element.update(...) is invoked.
-   */
   onUpdate?(element: ComponentElement<E>, detail?: unknown): void;
-
-  /**
-   * Lifecycle: called specifically when an observed attribute changes.
-   */
   onAttributeChanged?(element: ComponentElement<E>, change: AttributeChange): void;
-
-  /**
-   * Lifecycle: called when the custom element is adopted into a new document.
-   */
   onAdopted?(element: ComponentElement<E>): void;
 }

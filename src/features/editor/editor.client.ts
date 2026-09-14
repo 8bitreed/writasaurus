@@ -8,8 +8,12 @@ import type { EditorElements } from "./client/types.ts";
 // only referenced as a type below, so a plain named import would be tree-shaken away by
 // the bundler, silently dropping the registration and leaving the elements un-upgraded.
 import "./client/components.ts";
+import "./client/editor-toolbar.ts";
+import "./client/save-status.ts";
 import type { EditorSidebar } from "./client/components.ts";
 import { parseManuscript } from "./client/data.ts";
+import { executeEditorCommand } from "./client/editor-commands.ts";
+import { editorEvents } from "./client/editor-events.ts";
 import { state, syncChapter } from "./client/state.ts";
 import {
   restoreHandle,
@@ -113,9 +117,17 @@ function changed(): void {
   updateStats(state.manuscript, state.activeChapter);
 }
 
+editorEvents.on("command", ({ command, target, value }) => {
+  const editor = document.querySelector<HTMLElement>(target);
+  if (!editor) return;
+
+  executeEditorCommand(command, value);
+  editor.focus();
+  changed();
+});
+
 // Event Listeners
 elements.editor.addEventListener("input", changed);
-elements.editor.addEventListener("command", changed);
 
 const appMenu = element<HTMLElement>("#app-menu");
 const menuToggle = document.querySelector<HTMLButtonElement>("#menu-toggle");

@@ -2,6 +2,7 @@ import { element } from "../../../lib/utilties/dom-utilities.ts";
 import type { Manuscript, WritableFileHandle } from "./types.ts";
 import { serialize } from "./data.ts";
 import { saveLocal, storeHandle } from "./storage.ts";
+import { setSaveStatus } from "./save-status.ts";
 import { state, syncChapter } from "./state.ts";
 
 const filePicker = globalThis as unknown as {
@@ -25,8 +26,7 @@ export async function writeFile(
   const writable = await handle.createWritable();
   await writable.write(serialize(manuscript));
   await writable.close();
-  saveStatus.textContent = `Saved`;
-  saveStatus.className = "saved";
+  setSaveStatus(saveStatus, "saved", "Saved");
   state.hasUnsavedChanges = false;
   element("#filename").textContent = handle.name;
 }
@@ -44,8 +44,7 @@ export function download(
   link.click();
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1_000);
-  saveStatus.textContent = `Exported to ${manuscript.filename}`;
-  saveStatus.className = "saved";
+  setSaveStatus(saveStatus, "saved", `Exported to ${manuscript.filename}`);
   state.hasUnsavedChanges = false;
 }
 
@@ -73,14 +72,12 @@ export async function saveToDisk(
       state.desktopFileLoaded = true;
       state.hasUnsavedChanges = false;
       saveLocal(state.manuscript, state.activeChapter, state.hasUnsavedChanges);
-      saveStatus.textContent = `Saved`;
-      saveStatus.className = "saved";
+      setSaveStatus(saveStatus, "saved", "Saved");
       element("#filename").textContent = result.name;
       return;
     } catch (error) {
       console.error("Desktop save failed:", error);
-      saveStatus.textContent = "Save failed";
-      saveStatus.className = "unsaved";
+      setSaveStatus(saveStatus, "unsaved", "Save failed");
     }
   }
 

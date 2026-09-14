@@ -1,37 +1,5 @@
 import { getWordsPerPagePreference } from "../../../lib/settings.ts";
-
-export class EditorToolbar extends HTMLElement {
-  connectedCallback(): void {
-    this.addEventListener("click", this.#handleClick);
-  }
-
-  disconnectedCallback(): void {
-    this.removeEventListener("click", this.#handleClick);
-  }
-
-  #handleClick = (event: MouseEvent): void => {
-    const target = event.target as HTMLElement | null;
-    const button = target?.closest<HTMLButtonElement>("[data-command]");
-    if (!button || !this.contains(button)) return;
-
-    const command = button.dataset.command;
-    if (!command) return;
-    const value = button.dataset.value;
-
-    document.execCommand(command, false, value);
-
-    const targetSelector = this.getAttribute("for") || "#editor";
-    const editor = document.querySelector<HTMLElement>(targetSelector);
-    editor?.focus();
-
-    this.dispatchEvent(
-      new CustomEvent("command", {
-        bubbles: true,
-        detail: { command, value },
-      }),
-    );
-  };
-}
+import { executeEditorCommand } from "./editor-commands.ts";
 
 export class EditorSidebar extends HTMLElement {
   get collapsed(): boolean {
@@ -86,7 +54,7 @@ export class EditorCanvas extends HTMLElement {
   #handlePaste = (event: ClipboardEvent): void => {
     event.preventDefault();
     const text = event.clipboardData?.getData("text/plain") ?? "";
-    document.execCommand("insertText", false, text);
+    executeEditorCommand("insertText", text);
   };
 
   #handleKeyDown = (event: KeyboardEvent): void => {
@@ -94,7 +62,7 @@ export class EditorCanvas extends HTMLElement {
     event.preventDefault();
     // A raw tab character collapses to a single space under normal CSS
     // whitespace rules, so insert non-breaking spaces to render a visible indent.
-    document.execCommand("insertText", false, "\u00A0\u00A0\u00A0\u00A0");
+    executeEditorCommand("insertText", "\u00A0\u00A0\u00A0\u00A0");
     this.dispatchEvent(new Event("input", { bubbles: true }));
   };
 }
@@ -132,9 +100,6 @@ export class EditorStatusbar extends HTMLElement {
 }
 
 export function registerEditorComponents(): void {
-  if (!customElements.get("editor-toolbar")) {
-    customElements.define("editor-toolbar", EditorToolbar);
-  }
   if (!customElements.get("editor-sidebar")) {
     customElements.define("editor-sidebar", EditorSidebar);
   }

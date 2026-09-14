@@ -476,6 +476,44 @@ Deno.test("component: onAdopted lifecycle callback", () => {
   assertEquals(adopted, 1);
 });
 
+Deno.test("component: callback definition declares defaulted observed attributes", () => {
+  const changes: AttributeChange[] = [];
+  let connectedElement: ComponentElement | null = null;
+
+  const Ctor = component("test-definition-api", ({
+    attributeChangedCallback,
+    connectedCallback,
+    defineObservedAttribute,
+    observedAttributes,
+  }) => {
+    defineObservedAttribute("name", "John");
+    assertEquals(observedAttributes, ["name"]);
+    attributeChangedCallback((_element, change) => changes.push(change));
+    connectedCallback((element) => {
+      connectedElement = element;
+    });
+  });
+
+  assertEquals(Ctor.observedAttributes, ["name"]);
+  const el = new Ctor();
+  assertEquals(el.observedAttribute.name, "John");
+  assertEquals(changes, [{ name: "name", oldValue: null, newValue: "John" }]);
+
+  el.connectedCallback?.();
+  assert(connectedElement === el);
+});
+
+Deno.test("component: callback definition adds custom prototype properties", () => {
+  const Ctor = component("test-custom-properties", ({ defineProperty }) => {
+    defineProperty("answer", 42);
+    defineProperty("greeting", () => "Hello");
+  });
+
+  const el = new Ctor() as ComponentElement & { answer: number; greeting(): string };
+  assertEquals(el.answer, 42);
+  assertEquals(el.greeting(), "Hello");
+});
+
 Deno.test("component: avoids re-registering existing custom element", () => {
   const Ctor1 = component("test-dup-reg", {});
   const Ctor2 = component("test-dup-reg", {});

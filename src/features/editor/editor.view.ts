@@ -22,18 +22,14 @@ export const editorView = createView((ctx, props: Props) => {
           <span class="topbar-meta">
             <span id="filename">manuscript.md</span>
             <span class="save-status-group">
-              <span id="save-status"></span>
+              <save-status id="save-status" role="status" aria-live="polite"></save-status>
               <!-- comment out for now: <kbd class="save-hint" title="Save (Ctrl+S)">Ctrl+S</kbd>-->
             </span>
           </span>
         </div>
         <strong id="chapter-breadcrumb" hidden>Chapter 1</strong>
         <div class="topbar-right">
-          <editor-toolbar class="editor-toolbar" aria-label="Formatting toolbar" for="#editor">
-            <button type="button" class="small" data-command="bold"><strong>B</strong></button>
-            <button type="button" class="small" data-command="italic"><em>I</em></button>
-            <button type="button" class="small" data-command="insertUnorderedList">List</button>
-          </editor-toolbar>
+          <editor-toolbar aria-label="Formatting toolbar" for="#editor"></editor-toolbar>
           <button type="button" id="menu-toggle" class="menu-toggle small" aria-label="Menu"
             title="Menu (Ctrl+M)"
             aria-expanded="false" aria-haspopup="true">
