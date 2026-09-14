@@ -3,7 +3,12 @@ import { html } from "../../../framework/html/client_html_renderer.ts";
 
 defineWebComponent("word-count", (component) => {
   return component
-    .defineObservedAttributes({
+    .defineObservedAttributes<{
+      "chapter-words": number;
+      "chapter-chars": number;
+      "total-words": number;
+      "words-per-page": number;
+    }>({
       "chapter-words": 0,
       "chapter-chars": 0,
       "total-words": 0,

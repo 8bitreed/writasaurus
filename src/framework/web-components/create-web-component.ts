@@ -1,6 +1,6 @@
 import { renderHtml, type TemplateResult } from "./render-html.ts";
 
-export type AttributeValue = string | number | boolean;
+export type AttributeValue = string | number | boolean | null;
 export type ComponentRoot = ShadowRoot | HTMLElement;
 
 export interface RuntimeComponentElement extends HTMLElement {
@@ -88,10 +88,13 @@ export function registerWebComponent(definition: WebComponentDefinition): Custom
     }
     get observedAttribute(): Readonly<Record<string, AttributeValue>> {
       return new Proxy({} as Record<string, AttributeValue>, {
-        get: (_t, p) =>
-          typeof p === "string"
-            ? parse(this.getAttribute(p), definition.observedAttributes[p] ?? "")
-            : undefined,
+        get: (_t, p) => {
+          if (typeof p !== "string") return undefined;
+          if (!Object.hasOwn(definition.observedAttributes, p)) {
+            return this.getAttribute(p) ?? "";
+          }
+          return parse(this.getAttribute(p), definition.observedAttributes[p]);
+        },
       });
     }
     $<T extends Element = HTMLElement>(selector: string): T | null {
@@ -111,7 +114,7 @@ export function registerWebComponent(definition: WebComponentDefinition): Custom
     connectedCallback(): void {
       if (!this.#mounted) {
         for (const [n, v] of Object.entries(definition.observedAttributes)) {
-          if (!this.hasAttribute(n)) this.setAttribute(n, String(v));
+          if (!this.hasAttribute(n) && v !== null) this.setAttribute(n, String(v));
         }
         this.#mounted = true;
       }
