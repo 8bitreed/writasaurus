@@ -1,6 +1,3 @@
-import type { EditorSidebar } from "./editor-sidebar.ts";
-import type { EditorStatusbar } from "./editor-statusbar.ts";
-
 export interface Chapter {
   id: string;
   title: string;
@@ -22,15 +19,4 @@ export interface WritableFileHandle {
   createWritable(): Promise<{ write(data: string): Promise<void>; close(): Promise<void> }>;
   queryPermission(options: { mode: string }): Promise<string>;
   requestPermission(options: { mode: string }): Promise<string>;
-}
-
-export interface EditorElements {
-  editor: HTMLElement;
-  chapterList: HTMLElement;
-  sidebar: EditorSidebar;
-  statusbar: EditorStatusbar;
-  chapterTitle: HTMLInputElement;
-  manuscriptTitle: HTMLInputElement;
-  fileInput: HTMLInputElement;
-  saveStatus: HTMLElement;
 }

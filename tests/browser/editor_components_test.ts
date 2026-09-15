@@ -17,6 +17,7 @@ async function withEditorPage(test: (page: Page) => Promise<void>): Promise<void
 
   try {
     await page.addInitScript(() => {
+      sessionStorage.removeItem("writasaurus-manuscript-v1:state");
       sessionStorage.setItem("writasaurus-session:skip-welcome", "true");
     });
     await page.goto(`http://${address.hostname}:${address.port}/`);
@@ -27,6 +28,32 @@ async function withEditorPage(test: (page: Page) => Promise<void>): Promise<void
     await server.shutdown();
   }
 }
+
+Deno.test("browser: editor app renders its shell and adds a chapter", async () => {
+  await withEditorPage(async (page) => {
+    await page.waitForSelector("editor-app > editor-topbar", { state: "attached" });
+    await page.waitForSelector("editor-app editor-sidebar", { state: "attached" });
+    await page.waitForSelector("editor-app editor-writing-area #editor", { state: "attached" });
+    await page.locator("editor-sidebar").evaluate((element) => {
+      (element as HTMLElement & { expand(): void }).expand();
+    });
+
+    const initialChapters = await page.locator("editor-sidebar .chapter-item").count();
+    assert(initialChapters > 0, "Expected the editor to render at least one chapter");
+
+    await page.locator("editor-sidebar .sidebar-heading button").click();
+    await page.waitForFunction(
+      (count) => document.querySelectorAll(".chapter-item").length === count + 1,
+      initialChapters,
+    );
+
+    const chapterTitle = await page.locator("#chapter-title").inputValue();
+    assert(
+      chapterTitle === `Chapter ${initialChapters + 1}: Untitled`,
+      `Unexpected new chapter title: ${chapterTitle}`,
+    );
+  });
+});
 
 Deno.test("browser: save status renders observed attribute updates", async () => {
   await withEditorPage(async (page) => {

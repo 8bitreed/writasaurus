@@ -1,7 +1,7 @@
 import type { WritableFileHandle } from "./types.ts";
 import { blankManuscript, chapter, parseManuscript, SAMPLE_NOVEL } from "./data.ts";
 import { saveLocal, storeHandle } from "./storage.ts";
-import { state, syncChapter } from "./state.ts";
+import { state } from "./state.ts";
 
 export interface ActionCallbacks {
   render: () => void;
@@ -60,12 +60,7 @@ export function loadSample(callbacks: ActionCallbacks): void {
   callbacks.onChanged?.();
 }
 
-export function addChapter(
-  editor: HTMLElement,
-  chapterTitle: HTMLInputElement,
-  callbacks: ActionCallbacks,
-): void {
-  syncChapter(editor);
+export function addChapter(callbacks: ActionCallbacks): void {
   state.manuscript.chapters.push(
     chapter(`Chapter ${state.manuscript.chapters.length + 1}: Untitled`, "<p></p>"),
   );
@@ -74,21 +69,15 @@ export function addChapter(
   saveLocal(state.manuscript, state.activeChapter, state.hasUnsavedChanges);
   callbacks.render();
   callbacks.onChanged?.();
-  chapterTitle.select();
 }
 
-export function deleteChapter(
-  index: number,
-  editor: HTMLElement,
-  callbacks: ActionCallbacks,
-): void {
+export function deleteChapter(index: number, callbacks: ActionCallbacks): void {
   if (state.manuscript.chapters.length === 1) {
     alert("A manuscript needs one chapter.");
     return;
   }
   const item = state.manuscript.chapters[index];
   if (!confirm(`Delete "${item?.title}"?`)) return;
-  syncChapter(editor);
   state.manuscript.chapters.splice(index, 1);
   if (index < state.activeChapter) {
     state.activeChapter--;
@@ -101,16 +90,9 @@ export function deleteChapter(
   callbacks.onChanged?.();
 }
 
-export function selectChapter(
-  index: number,
-  editor: HTMLElement,
-  sidebar: HTMLElement,
-  callbacks: ActionCallbacks,
-): void {
+export function selectChapter(index: number, callbacks: ActionCallbacks): void {
   if (index === state.activeChapter) return;
-  syncChapter(editor);
   state.activeChapter = index;
   saveLocal(state.manuscript, state.activeChapter, state.hasUnsavedChanges);
   callbacks.render();
-  if (matchMedia("(max-width: 55rem)").matches) sidebar.classList.add("collapsed");
 }

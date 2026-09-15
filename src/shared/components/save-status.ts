@@ -1,4 +1,4 @@
-import { html, webComponent } from "../../../framework/web-components/index.ts";
+import { html, webComponent } from "../../framework/web-components/index.ts";
 
 export type SaveStatus = "" | "saved" | "unsaved";
 

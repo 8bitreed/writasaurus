@@ -1,8 +1,7 @@
-import { element } from "../../../lib/utilties/dom-utilities.ts";
 import type { Manuscript, WritableFileHandle } from "./types.ts";
 import { serialize } from "./data.ts";
 import { saveLocal, storeHandle } from "./storage.ts";
-import { setSaveStatus } from "./save-status.ts";
+import { setSaveStatus } from "../../../shared/components/save-status.ts";
 import { state, syncChapter } from "./state.ts";
 
 const filePicker = globalThis as unknown as {
@@ -28,7 +27,6 @@ export async function writeFile(
   await writable.close();
   setSaveStatus(saveStatus, "saved", "Saved");
   state.hasUnsavedChanges = false;
-  element("#filename").textContent = handle.name;
 }
 
 export function download(
@@ -73,7 +71,7 @@ export async function saveToDisk(
       state.hasUnsavedChanges = false;
       saveLocal(state.manuscript, state.activeChapter, state.hasUnsavedChanges);
       setSaveStatus(saveStatus, "saved", "Saved");
-      element("#filename").textContent = result.name;
+
       return;
     } catch (error) {
       console.error("Desktop save failed:", error);
