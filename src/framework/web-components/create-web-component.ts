@@ -7,6 +7,7 @@ export interface RuntimeComponentElement extends HTMLElement {
   readonly root: ComponentRoot;
   readonly state: Record<string, unknown>;
   readonly observedAttribute: Readonly<Record<string, AttributeValue>>;
+  readonly computed: Readonly<Record<string, unknown>>;
   render(): void;
   $<T extends Element = HTMLElement>(selector: string): T | null;
   $$<T extends Element = HTMLElement>(selector: string): NodeListOf<T>;
@@ -21,6 +22,10 @@ export interface WebComponentDefinition {
   shadow: boolean | ShadowRootInit;
   properties: ReadonlyMap<PropertyKey, PropertyDescriptor>;
   methods: ReadonlyMap<string, (element: RuntimeComponentElement) => (...args: never[]) => unknown>;
+  computed: ReadonlyMap<string, {
+    dependencies: (element: RuntimeComponentElement) => readonly unknown[];
+    compute: (...dependencies: never[]) => unknown;
+  }>;
   render?: (element: RuntimeComponentElement) => TemplateResult;
   connected?: (element: RuntimeComponentElement) => void;
   disconnected?: (element: RuntimeComponentElement) => void;
@@ -71,6 +76,7 @@ export function registerWebComponent(definition: WebComponentDefinition): Custom
     }
     readonly root: ComponentRoot;
     readonly state: Record<string, unknown>;
+    readonly computed: Readonly<Record<string, unknown>>;
     #mounted = false;
     constructor() {
       super();
@@ -93,6 +99,26 @@ export function registerWebComponent(definition: WebComponentDefinition): Custom
           writable: true,
         });
       }
+      const computed: Record<string, unknown> = {};
+      for (const [name, computedDefinition] of definition.computed) {
+        let dependencies: readonly unknown[] | undefined;
+        let value: unknown;
+        Object.defineProperty(computed, name, {
+          enumerable: true,
+          get: () => {
+            const next = computedDefinition.dependencies(this);
+            if (
+              !dependencies || next.length !== dependencies.length ||
+              next.some((item, index) => !Object.is(item, dependencies![index]))
+            ) {
+              dependencies = [...next];
+              value = computedDefinition.compute(...next as never[]);
+            }
+            return value;
+          },
+        });
+      }
+      this.computed = computed;
     }
     get observedAttribute(): Readonly<Record<string, AttributeValue>> {
       return new Proxy({} as Record<string, AttributeValue>, {

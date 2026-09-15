@@ -1,6 +1,6 @@
-import { createWebComponent, html } from "../../framework/web-components/index.ts";
+import { html, webComponent } from "../../framework/web-components/index.ts";
 
-createWebComponent("about-counter")
+webComponent("about-counter")
   .defineState({
     count: 0,
   })
@@ -9,17 +9,20 @@ createWebComponent("about-counter")
     name: "John",
     lastName: "Smith",
   })
-  .defineMethod("increment", (element) => {
-    return () => element.state.count++;
+  .defineMethod("increment", (el) => {
+    return () => el.state.count++;
   })
+  .defineComputed(
+    "fullName",
+    (el): [string, string] => [el.observedAttribute.name, el.observedAttribute.lastName],
+    (name, lastName) => `${name} ${lastName}`,
+  )
   .defineRender((el) => {
-    const fullname = `${el.observedAttribute.name} ${el.observedAttribute.lastName}`;
-
     return html`
-      <p>Hello, ${fullname}!</p>
+      <p>Hello, ${el.computed.fullName}!</p>
       <p>Count: ${el.state.count}</p>
       <button class="button primary" @click=${el.increment}>Increment</button>
       ${el.state.count >= 10 ? html`<p>You've reached 10!</p>` : ""}
     `;
   })
-  .define();
+  .create();

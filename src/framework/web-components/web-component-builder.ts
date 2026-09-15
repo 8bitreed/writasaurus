@@ -7,53 +7,61 @@ import type { TemplateResult } from "../html/client_html_renderer.ts";
 
 export type EmptyObject = Record<PropertyKey, never>;
 export type WebComponentElement<
-  S extends Record<string, unknown>,
-  A extends Record<string, AttributeValue> = EmptyObject,
+  State extends Record<string, unknown>,
+  Attributes extends Record<string, AttributeValue> = EmptyObject,
   Methods extends object = object,
-> = Omit<RuntimeComponentElement, "state" | "observedAttribute"> & Methods & {
-  readonly state: S;
-  readonly observedAttribute: Readonly<A>;
+  Computed extends object = object,
+> = Omit<RuntimeComponentElement, "computed" | "observedAttribute" | "state"> & Methods & {
+  readonly state: State;
+  readonly observedAttribute: Readonly<Attributes>;
+  readonly computed: Readonly<Computed>;
 };
+
 type Render<
   S extends Record<string, unknown>,
   A extends Record<string, AttributeValue>,
-  Methods extends object,
+  M extends object,
+  C extends object,
 > = (
-  element: WebComponentElement<S, A, Methods>,
+  element: WebComponentElement<S, A, M, C>,
 ) => TemplateResult;
 type Hook<
   S extends Record<string, unknown>,
   A extends Record<string, AttributeValue>,
-  Methods extends object,
+  M extends object,
+  C extends object,
 > = (
-  element: WebComponentElement<S, A, Methods>,
+  element: WebComponentElement<S, A, M, C>,
 ) => void;
 
 export type WebComponentBuilder<
   S extends Record<string, unknown> = EmptyObject,
   A extends Record<string, AttributeValue> = EmptyObject,
-  Methods extends object = object,
+  M extends object = object,
+  C extends object = object,
 > = {
   defineState<N extends Record<string, unknown>>(
     value: N | (() => N),
-  ): WebComponentBuilder<N, A, Methods>;
+  ): WebComponentBuilder<N, A, M, C>;
   defineObservedAttributes<N extends Record<string, AttributeValue>>(
     defaults: N,
-  ): WebComponentBuilder<S, A & N, Methods>;
-  defineStyles(css: string | readonly string[]): WebComponentBuilder<S, A, Methods>;
-  defineShadow(shadow: boolean | ShadowRootInit): WebComponentBuilder<S, A, Methods>;
-  defineProperty(name: PropertyKey, value: unknown): WebComponentBuilder<S, A, Methods>;
+  ): WebComponentBuilder<S, A & N, M, C>;
+  defineStyles(css: string | readonly string[]): WebComponentBuilder<S, A, M, C>;
+  defineShadow(shadow: boolean | ShadowRootInit): WebComponentBuilder<S, A, M, C>;
+  defineProperty(name: PropertyKey, value: unknown): WebComponentBuilder<S, A, M, C>;
   defineMethod<Name extends string, Method extends (...args: never[]) => unknown>(
     name: Name,
-    factory: (element: WebComponentElement<S, A, Methods>) => Method,
-  ): WebComponentBuilder<S, A, Methods & Record<Name, Method>>;
-  connectedCallback(callback: Hook<S, A, Methods>): WebComponentBuilder<S, A, Methods>;
-  disconnectedCallback(callback: Hook<S, A, Methods>): WebComponentBuilder<S, A, Methods>;
-  defineRender(render: Render<S, A, Methods>): WebComponentBuilder<S, A, Methods>;
-  /** Registers the collected custom-element definition. */
-  define(): CustomElementConstructor;
-  /** @deprecated Use `define()` instead. */
-  build(): CustomElementConstructor;
+    factory: (element: WebComponentElement<S, A, M, C>) => Method,
+  ): WebComponentBuilder<S, A, M & Record<Name, Method>, C>;
+  defineComputed<Name extends string, Dependencies extends readonly unknown[], Value>(
+    name: Name,
+    dependencies: (element: WebComponentElement<S, A, M, C>) => Dependencies,
+    compute: (...dependencies: Dependencies) => Value,
+  ): WebComponentBuilder<S, A, M, C & Record<Name, Value>>;
+  connectedCallback(callback: Hook<S, A, M, C>): WebComponentBuilder<S, A, M, C>;
+  disconnectedCallback(callback: Hook<S, A, M, C>): WebComponentBuilder<S, A, M, C>;
+  defineRender(render: Render<S, A, M, C>): WebComponentBuilder<S, A, M, C>;
+  create(): CustomElementConstructor;
 };
 
 function descriptor(value: unknown): PropertyDescriptor {
@@ -62,26 +70,32 @@ function descriptor(value: unknown): PropertyDescriptor {
     ? value as PropertyDescriptor
     : { configurable: true, value, writable: true };
 }
-export function createWebComponentBuilder(tagName: string): WebComponentBuilder {
+
+export function webComponent(tagName: string): WebComponentBuilder {
   let stateFactory: () => Record<string, unknown> = () => ({});
-  const attrs: Record<string, AttributeValue> = {};
+  const observedAttributes: Record<string, AttributeValue> = {};
   const styles: string[] = [];
   const properties = new Map<PropertyKey, PropertyDescriptor>();
   const methods = new Map<
     string,
     (element: RuntimeComponentElement) => (...args: never[]) => unknown
   >();
+  const computed = new Map<string, {
+    dependencies: (element: RuntimeComponentElement) => readonly unknown[];
+    compute: (...dependencies: never[]) => unknown;
+  }>();
   let shadow: boolean | ShadowRootInit = true;
-  let render: ((e: RuntimeComponentElement) => TemplateResult) | undefined;
-  let connected: ((e: RuntimeComponentElement) => void) | undefined;
-  let disconnected: ((e: RuntimeComponentElement) => void) | undefined;
+  let render: ((element: RuntimeComponentElement) => TemplateResult) | undefined;
+  let connected: ((element: RuntimeComponentElement) => void) | undefined;
+  let disconnected: ((element: RuntimeComponentElement) => void) | undefined;
+
   const builder = {
     defineState(value: Record<string, unknown> | (() => Record<string, unknown>)) {
       stateFactory = () => ({ ...(typeof value === "function" ? value() : value) });
       return builder;
     },
     defineObservedAttributes(defaults: Record<string, AttributeValue>) {
-      Object.assign(attrs, defaults);
+      Object.assign(observedAttributes, defaults);
       return builder;
     },
     defineStyles(css: string | readonly string[]) {
@@ -103,49 +117,41 @@ export function createWebComponentBuilder(tagName: string): WebComponentBuilder 
       methods.set(name, factory);
       return builder;
     },
-    connectedCallback(callback: (e: RuntimeComponentElement) => void) {
+    defineComputed(
+      name: string,
+      dependencies: (element: RuntimeComponentElement) => readonly unknown[],
+      compute: (...dependencies: never[]) => unknown,
+    ) {
+      computed.set(name, { dependencies, compute });
+      return builder;
+    },
+    connectedCallback(callback: (element: RuntimeComponentElement) => void) {
       connected = callback;
       return builder;
     },
-    disconnectedCallback(callback: (e: RuntimeComponentElement) => void) {
+    disconnectedCallback(callback: (element: RuntimeComponentElement) => void) {
       disconnected = callback;
       return builder;
     },
-    defineRender(next: (e: RuntimeComponentElement) => TemplateResult) {
+    defineRender(next: (element: RuntimeComponentElement) => TemplateResult) {
       render = next;
       return builder;
     },
-    define() {
+    create() {
       return registerWebComponent({
         tagName,
-        observedAttributes: attrs,
+        observedAttributes,
         stateFactory,
         styles,
         shadow,
         properties,
         methods,
+        computed,
         render,
         connected,
         disconnected,
       });
     },
-    build() {
-      return builder.define();
-    },
   };
   return builder as unknown as WebComponentBuilder;
-}
-
-/** Starts a fluent custom-element definition. */
-export function createWebComponent(tagName: string): WebComponentBuilder {
-  return createWebComponentBuilder(tagName);
-}
-export function defineWebComponent<
-  S extends Record<string, unknown>,
-  A extends Record<string, AttributeValue>,
->(
-  tag: string,
-  definition: (builder: WebComponentBuilder) => WebComponentBuilder<S, A>,
-): CustomElementConstructor {
-  return definition(createWebComponent(tag)).define();
 }

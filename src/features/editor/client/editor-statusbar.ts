@@ -1,8 +1,8 @@
 import {
-  defineWebComponent,
+  html,
+  webComponent,
   type WebComponentElement,
 } from "../../../framework/web-components/index.ts";
-import { html } from "../../../framework/html/client_html_renderer.ts";
 import { getWordsPerPagePreference } from "../../../lib/settings.ts";
 import { editorEvents } from "./editor-events.ts";
 import "./word-count.ts";
@@ -31,9 +31,8 @@ function toggleSidebar(): void {
   editorEvents.emit("toggleSidebar", undefined);
 }
 
-defineWebComponent("editor-statusbar", (component) => {
-  return component
-    .defineStyles(/* css */ `
+webComponent("editor-statusbar")
+  .defineStyles(/* css */ `
     :host {
       align-items: center;
       background: var(--surface);
@@ -96,22 +95,22 @@ defineWebComponent("editor-statusbar", (component) => {
       }
     }
   `)
-    .defineState({ chapterChars: 0, chapterWords: 0, totalWords: 0, wordsPerPage: 300 })
-    .defineProperty("setStats", setStats)
-    .defineRender(({ state }) => {
-      const { chapterChars, chapterWords, totalWords, wordsPerPage } = state;
+  .defineState({ chapterChars: 0, chapterWords: 0, totalWords: 0, wordsPerPage: 300 })
+  .defineProperty("setStats", setStats)
+  .defineRender(({ state }) => {
+    const { chapterChars, chapterWords, totalWords, wordsPerPage } = state;
 
-      return html`
-        <button type="button" aria-label="Toggle chapters panel" title="Toggle chapters panel (Ctrl+B)"
-          @click=${toggleSidebar}>
-          Chapters <kbd>Ctrl+B</kbd>
-        </button>
-        <word-count
-          chapter-words=${chapterWords}
-          chapter-chars=${chapterChars}
-          total-words=${totalWords}
-          words-per-page=${wordsPerPage}
-        ></word-count>
-      `;
-    });
-});
+    return html`
+      <button type="button" aria-label="Toggle chapters panel" title="Toggle chapters panel (Ctrl+B)"
+        @click=${toggleSidebar}>
+        Chapters <kbd>Ctrl+B</kbd>
+      </button>
+      <word-count
+        chapter-words=${chapterWords}
+        chapter-chars=${chapterChars}
+        total-words=${totalWords}
+        words-per-page=${wordsPerPage}
+      ></word-count>
+    `;
+  })
+  .create();

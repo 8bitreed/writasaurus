@@ -1,7 +1,4 @@
-import {
-  defineWebComponent,
-  type WebComponentElement,
-} from "../../../framework/web-components/index.ts";
+import { webComponent, type WebComponentElement } from "../../../framework/web-components/index.ts";
 
 export interface EditorSidebar extends WebComponentElement<Record<string, never>> {
   collapsed: boolean;
@@ -32,12 +29,11 @@ function expand(this: EditorSidebar): void {
   this.collapsed = false;
 }
 
-defineWebComponent("editor-sidebar", (component) => {
-  // The server-rendered chapter list remains in light DOM for the editor UI.
-  return component
-    .defineShadow(false)
-    .defineProperty("collapsed", { get: getCollapsed, set: setCollapsed })
-    .defineProperty("toggle", toggle)
-    .defineProperty("collapse", collapse)
-    .defineProperty("expand", expand);
-});
+// The server-rendered chapter list remains in light DOM for the editor UI.
+webComponent("editor-sidebar")
+  .defineShadow(false)
+  .defineProperty("collapsed", { get: getCollapsed, set: setCollapsed })
+  .defineProperty("toggle", toggle)
+  .defineProperty("collapse", collapse)
+  .defineProperty("expand", expand)
+  .create();

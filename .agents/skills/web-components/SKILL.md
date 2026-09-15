@@ -10,18 +10,15 @@ Use this skill for browser components that need meaningful JavaScript behavior: 
 Import from the barrel:
 
 ```ts
-import {
-  createWebComponent,
-  html,
-} from "../../../framework/web-components/index.ts";
+import { webComponent, html } from "../../../framework/web-components/index.ts";
 ```
 
 ## Preferred fluent API
 
-Start with `createWebComponent()` and finish with `.define()`:
+Start with `webComponent()` and finish with `.create()`:
 
 ```ts
-createWebComponent("counter-widget")
+webComponent("counter-widget")
   .defineState(() => ({ count: 0 }))
   .defineObservedAttributes({ label: "Count" })
   .defineStyles(
@@ -37,7 +34,7 @@ createWebComponent("counter-widget")
       </button>
     `,
   )
-  .define();
+  .create();
 ```
 
 Each chained declaration refines the types for later steps. Use `defineState((): State => ({ ... }))` when nullable values, empty arrays, objects, or functions need an explicit type.

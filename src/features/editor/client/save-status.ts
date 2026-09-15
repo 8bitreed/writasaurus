@@ -1,5 +1,4 @@
-import { defineWebComponent } from "../../../framework/web-components/index.ts";
-import { html } from "../../../framework/html/client_html_renderer.ts";
+import { html, webComponent } from "../../../framework/web-components/index.ts";
 
 export type SaveStatus = "" | "saved" | "unsaved";
 
@@ -8,10 +7,9 @@ export function setSaveStatus(element: HTMLElement, status: SaveStatus, message:
   element.setAttribute("message", message);
 }
 
-defineWebComponent("save-status", (component) => {
-  return component
-    .defineObservedAttributes({ message: "", status: "" })
-    .defineStyles(/* css */ `
+webComponent("save-status")
+  .defineObservedAttributes({ message: "", status: "" })
+  .defineStyles(/* css */ `
       :host {
         align-items: center;
         color: inherit;
@@ -42,13 +40,13 @@ defineWebComponent("save-status", (component) => {
         background-color: #e6a6c7;
       }
     `)
-    .defineRender((element) => {
-      const status = element.observedAttribute.status;
-      const message = element.observedAttribute.message;
+  .defineRender((element) => {
+    const status = element.observedAttribute.status;
+    const message = element.observedAttribute.message;
 
-      return html`
-        <span class=${`save-status-indicator ${status}`} aria-hidden="true"></span>
-        <span>${message}</span>
-      `;
-    });
-});
+    return html`
+      <span class=${`save-status-indicator ${status}`} aria-hidden="true"></span>
+      <span>${message}</span>
+    `;
+  })
+  .create();

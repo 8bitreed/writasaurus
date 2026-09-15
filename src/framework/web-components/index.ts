@@ -1,3 +1,7 @@
-export * from "./create-web-component.ts";
-export * from "./render-html.ts";
-export * from "./web-component-builder.ts";
+export { html, repeat, type RepeatResult, type TemplateResult } from "./render-html.ts";
+export {
+  type EmptyObject,
+  webComponent,
+  type WebComponentBuilder,
+  type WebComponentElement,
+} from "./web-component-builder.ts";
