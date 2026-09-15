@@ -20,9 +20,9 @@ Deno.test("renders editor on root route with its registered asset entries", asyn
   assert(!page.includes('id="save-file"'));
   assert(!page.includes('contenteditable="true"'));
   assert(!page.includes("app.js"));
-  assert(page.includes("/assets/features-editor-editor.client-"));
+  assert(page.includes("/assets/features-editor-editor.client"));
   assert(page.includes(".js"));
-  assert(page.includes("/assets/features-editor-editor.client-"));
+  assert(page.includes("/assets/features-editor-editor.client"));
   assert(page.includes(".css"));
 });
 
@@ -37,9 +37,9 @@ Deno.test("renders welcome page with open manuscript options and return to edito
   assert(page.includes("Load Sample Novel"));
   assert(page.includes('href="/"'));
   assert(page.includes("Return to Editor"));
-  assert(page.includes("/assets/features-welcome-welcome.client-"));
+  assert(page.includes("/assets/features-welcome-welcome.client"));
   assert(page.includes(".js"));
-  assert(page.includes("/assets/features-welcome-welcome.client-"));
+  assert(page.includes("/assets/features-welcome-welcome.client"));
   assert(page.includes(".css"));
 
   const aliasResponse = await app.request("/open");
@@ -56,9 +56,9 @@ Deno.test("renders about page with description and return to editor link", async
   assert(page.includes("Writasaurus"));
   assert(page.includes('href="/"'));
   assert(page.includes("Return to Editor"));
-  assert(page.includes("/assets/features-about-about.client-"));
+  assert(page.includes("/assets/features-about-about.client"));
   assert(page.includes(".css"));
-  assert(page.includes("/assets/features-about-about.client-"));
+  assert(page.includes("/assets/features-about-about.client"));
   assert(page.includes(".js"));
 });
 
@@ -76,16 +76,16 @@ Deno.test("renders settings page with font options and return to editor link", a
   assert(page.includes("words-per-page-input"));
   assert(page.includes('href="/"'));
   assert(page.includes("Return to Editor"));
-  assert(page.includes("/assets/features-settings-settings.client-"));
+  assert(page.includes("/assets/features-settings-settings.client"));
   assert(page.includes(".js"));
-  assert(page.includes("/assets/features-settings-settings.client-"));
+  assert(page.includes("/assets/features-settings-settings.client"));
   assert(page.includes(".css"));
 });
 
 Deno.test("stylesheets include view transition rules for smooth page fades", async () => {
   const response = await app.request("/");
   const page = await response.text();
-  const cssMatch = page.match(/href="(\/assets\/features-editor-editor\.client-[^"]+\.css)"/);
+  const cssMatch = page.match(/href="(\/assets\/features-editor-editor\.client[^"]*\.css)"/);
   assert(cssMatch !== null);
   const cssRes = await app.request(cssMatch[1]);
   assert(cssRes.status === 200);

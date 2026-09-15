@@ -66,11 +66,11 @@ character counts. Browsers without direct file access use normal uploads and dow
 
 ## Browser assets
 
-`src/bundle.ts` contains an explicit `entries` list for browser TypeScript and CSS and passes it to
-the reusable bundler in `src/framework/bundle/bundle.ts`. The bundler also handles Deno's `--watch`
-argument. Add each new client entry to that list; client TypeScript uses the `[name].client.ts`
-convention and can live beside its feature code. `deno task build` bundles each entry, writes a
-content-hashed file to `dist/assets/`, and records its source-relative path in `dist/manifest.json`.
+`src/bundle.ts` auto-loads browser TypeScript and CSS from `src/features/` and passes them to the
+reusable bundler in `src/framework/bundle/bundle.ts`. The bundler also handles Deno's `--watch`
+argument. Client TypeScript uses the `[name].client.ts` convention and CSS uses `[name].client.css`.
+`deno task build` bundles each entry to `dist/assets/`. Hash files and manifest are optional and
+disabled by default; pass `--hash` and `--manifest` to enable them.
 
 `src/framework/assets.ts` exposes `ctx.asset(path)`, which resolves a registered source path such as
 `features/editor/editor.client.ts` to its built URL. Feature views create their own escaped

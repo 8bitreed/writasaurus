@@ -8,15 +8,16 @@ This is a Deno 2 project; use Deno tasks and JSR imports rather than npm tooling
   server-side watch mode.
 - `deno task dev:assets` watches and rebuilds browser TypeScript and CSS. Run it in a second
   terminal with `deno task dev` when changing client assets.
-- `deno task build` creates content-hashed browser bundles and `dist/manifest.json`.
+- `deno task build` bundles browser assets into `dist/assets/` (hash files and manifest are
+  optional, disabled by default; enable with `--hash` and `--manifest`).
 - `deno task start` serves an existing production build.
 - `deno task desktop:dev` builds and runs the Deno Desktop app with HMR for server handler changes.
   Restart it after changing client TypeScript or CSS.
 - `deno task desktop` builds the native application for the current platform into `desktop/`.
 - `deno task check` runs formatting checks, linting, type checks, and the full test suite.
 
-`dist/` is generated and gitignored, but application modules import `dist/manifest.json`. In a clean
-checkout, run `deno task build` before `deno task check` or any test that imports `src/app.ts`.
+`dist/` is generated and gitignored. In a clean checkout, run `deno task build` before
+`deno task check` or any test that imports `src/app.ts`.
 
 Run tests directly with the same permissions used by the check task:
 

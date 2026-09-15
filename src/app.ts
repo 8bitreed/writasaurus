@@ -6,6 +6,8 @@ import { type Middleware } from "./framework/routing/types.ts";
 import { createRouter } from "./framework/routing/router.ts";
 import { Routes } from "./routes/routes.ts";
 
+// import "./bundle.ts";
+
 /* TYPES */
 export type App = ((req: Request, info?: Deno.ServeHandlerInfo) => Response | Promise<Response>) & {
   fetch(req: Request, info?: Deno.ServeHandlerInfo): Response | Promise<Response>;

@@ -1,6 +1,7 @@
 import { html, webComponent } from "../../../framework/web-components/index.ts";
 
 webComponent("word-count")
+  .defineState(() => ({ showChapterStats: true }))
   .defineObservedAttributes<{
     "chapter-words": number;
     "chapter-chars": number;
@@ -14,24 +15,28 @@ webComponent("word-count")
   })
   .defineStyles(/* css */ `
       :host {
-        align-items: center;
-        display: flex;
+        display: block;
         flex-shrink: 1;
-        gap: 0.5rem;
         min-width: 0;
       }
 
       .stat {
-        flex-shrink: 1;
+        background: none;
+        border: 0;
+        color: inherit;
+        cursor: pointer;
+        font: inherit;
         min-width: 0;
         overflow: hidden;
+        padding: 0;
+        text-align: inherit;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
 
-      .divider {
-        color: var(--muted);
-        font-size: 0.6rem;
+      .stat:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
       }
     `)
   .defineRender((element) => {
@@ -40,12 +45,22 @@ webComponent("word-count")
     const totalWords = element.observedAttribute["total-words"];
     const wordsPerPage = element.observedAttribute["words-per-page"];
 
+    const showChapterStats = element.state.showChapterStats;
+    const stats = showChapterStats
+      ? `Chapter: ${chapterWords.toLocaleString()} words · ${chapterChars.toLocaleString()} characters`
+      : `Manuscript: ${totalWords.toLocaleString()} words · ${
+        (totalWords / wordsPerPage).toFixed(1)
+      } pages`;
+
     return html`
-      <span class="stat">Chapter: ${chapterWords.toLocaleString()} words · ${chapterChars
-        .toLocaleString()} characters</span>
-      <span class="divider" aria-hidden="true">|</span>
-      <span class="stat">Manuscript: ${totalWords
-        .toLocaleString()} words · ${(totalWords / wordsPerPage).toFixed(1)} pages</span>
+      <button
+        class="stat"
+        type="button"
+        aria-label="Show ${showChapterStats ? "manuscript" : "chapter"} statistics"
+        @click=${() => element.state.showChapterStats = !showChapterStats}
+      >
+        ${stats}
+      </button>
     `;
   })
   .create();

@@ -2,7 +2,7 @@ import { bundle } from "./framework/bundle/bundle.ts";
 
 // auto load all css and ts files that end with .client.ts or .client.css
 
-function autoLoadClientFiles(path: string = "src/features"): string[] {
+export function autoLoadClientFiles(path: string = "src/features"): string[] {
   const entries: string[] = [];
 
   // recursively

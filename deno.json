@@ -8,9 +8,9 @@
       "identifier": "io.github.8bitreed.dino-writer"
     },
     "output": {
-      "linux": "./desktop/DenoSimple.AppImage",
-      "windows": "./desktop/DenoSimple.msi",
-      "macos": "./desktop/DenoSimple.app"
+      "linux": "./desktop/Writasaurus.AppImage",
+      "windows": "./desktop/Writasaurus.msi",
+      "macos": "./desktop/Writasaurus.app"
     }
   },
   "compilerOptions": {

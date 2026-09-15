@@ -43,7 +43,40 @@ function outputStem(entry: string): string {
     .replaceAll("/", "-");
 }
 
-async function build(entries: readonly string[]): Promise<void> {
+export interface BundleOptions {
+  hash?: boolean;
+  hashFiles?: boolean;
+  manifest?: boolean;
+  watch?: boolean;
+}
+
+function parseBooleanArg(name: string): boolean | undefined {
+  if (Deno.args.includes(`--${name}`)) return true;
+  if (Deno.args.includes(`--no-${name}`)) return false;
+  return undefined;
+}
+
+export function resolveBundleOptions(options?: BundleOptions): {
+  hash: boolean;
+  manifest: boolean;
+  watch: boolean;
+} {
+  const hashArg = parseBooleanArg("hash") ?? parseBooleanArg("hash-files");
+  const manifestArg = parseBooleanArg("manifest");
+  const watchArg = parseBooleanArg("watch");
+
+  return {
+    hash: options?.hash ?? options?.hashFiles ?? hashArg ?? false,
+    manifest: options?.manifest ?? manifestArg ?? false,
+    watch: options?.watch ?? watchArg ?? false,
+  };
+}
+
+export async function build(
+  entries: readonly string[],
+  options?: BundleOptions,
+): Promise<void> {
+  const { hash: hashEnabled, manifest: manifestEnabled } = resolveBundleOptions(options);
   const startTime = performance.now();
   const tempDir = await Deno.makeTempDir({ prefix: "deno-bundle-" });
 
@@ -60,6 +93,12 @@ async function build(entries: readonly string[]): Promise<void> {
 
     try {
       await Deno.remove(join(distDir, ".vite"), { recursive: true });
+    } catch (error) {
+      if (!(error instanceof Deno.errors.NotFound)) throw error;
+    }
+
+    try {
+      await Deno.remove(manifestPath);
     } catch (error) {
       if (!(error instanceof Deno.errors.NotFound)) throw error;
     }
@@ -87,13 +126,22 @@ async function build(entries: readonly string[]): Promise<void> {
       }
 
       const data = await Deno.readFile(bundledPath);
-      const contentHash = await hash(data);
-      const outputName = `${outputStem(entry)}-${contentHash}${extension}`;
+      let outputName: string;
+      if (hashEnabled) {
+        const contentHash = await hash(data);
+        outputName = `${outputStem(entry)}-${contentHash}${extension}`;
+      } else {
+        outputName = `${outputStem(entry)}${extension}`;
+      }
       await Deno.writeFile(join(assetsDir, outputName), data);
-      manifest[manifestKey(entry)] = `/assets/${outputName}`;
+      if (manifestEnabled) {
+        manifest[manifestKey(entry)] = `/assets/${outputName}`;
+      }
     }
 
-    await Deno.writeTextFile(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
+    if (manifestEnabled) {
+      await Deno.writeTextFile(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
+    }
     await copyDir(staticDir, distDir);
 
     const elapsed = Math.round(performance.now() - startTime);
@@ -103,10 +151,14 @@ async function build(entries: readonly string[]): Promise<void> {
   }
 }
 
-export async function bundle(entries: readonly string[]): Promise<void> {
-  await build(entries);
+export async function bundle(
+  entries: readonly string[],
+  options?: BundleOptions,
+): Promise<void> {
+  const resolved = resolveBundleOptions(options);
+  await build(entries, resolved);
 
-  if (!Deno.args.includes("--watch")) return;
+  if (!resolved.watch) return;
 
   console.log("Watching src for asset changes...");
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -117,7 +169,7 @@ export async function bundle(entries: readonly string[]): Promise<void> {
     timer = setTimeout(async () => {
       try {
         console.log("Rebuilding assets...");
-        await build(entries);
+        await build(entries, resolved);
       } catch (error) {
         console.error("Build failed:", error);
       }
