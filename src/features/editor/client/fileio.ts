@@ -1,13 +1,20 @@
 import type { Manuscript, WritableFileHandle } from "./types.ts";
 import { serialize } from "./data.ts";
-import { saveLocal, storeHandle } from "./storage.ts";
-import { setSaveStatus } from "../../../shared/components/save-status.ts";
-import { state, syncChapter } from "./state.ts";
+import { storeHandle } from "./storage.ts";
+import { editorStore, markSaved, state } from "./state.ts";
 
 const filePicker = globalThis as unknown as {
   showSaveFilePicker?: (options: object) => Promise<WritableFileHandle>;
   showOpenFilePicker?: (options: object) => Promise<WritableFileHandle[]>;
 };
+
+const MARKDOWN_TYPES = [{
+  description: "Markdown",
+  accept: {
+    "text/markdown": [".md", ".markdown"],
+    "text/plain": [".txt"],
+  },
+}];
 
 export async function hasWritePermission(
   handle: WritableFileHandle,
@@ -20,19 +27,14 @@ export async function hasWritePermission(
 export async function writeFile(
   handle: WritableFileHandle,
   manuscript: Manuscript,
-  saveStatus: HTMLElement,
 ): Promise<void> {
   const writable = await handle.createWritable();
   await writable.write(serialize(manuscript));
   await writable.close();
-  setSaveStatus(saveStatus, "saved", "Saved");
-  state.hasUnsavedChanges = false;
+  markSaved();
 }
 
-export function download(
-  manuscript: Manuscript,
-  saveStatus: HTMLElement,
-): void {
+export function download(manuscript: Manuscript): void {
   const url = URL.createObjectURL(new Blob([serialize(manuscript)], { type: "text/markdown" }));
   const link = document.createElement("a");
   link.href = url;
@@ -42,16 +44,10 @@ export function download(
   link.click();
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1_000);
-  setSaveStatus(saveStatus, "saved", `Exported to ${manuscript.filename}`);
-  state.hasUnsavedChanges = false;
+  markSaved(`Exported to ${manuscript.filename}`);
 }
 
-export async function saveToDisk(
-  editor: HTMLElement,
-  saveStatus: HTMLElement,
-  saveAs = false,
-): Promise<void> {
-  syncChapter(editor);
+export async function saveToDisk(saveAs = false): Promise<void> {
   if (state.isDesktop) {
     try {
       const response = await fetch("/api/editor/save", {
@@ -66,63 +62,55 @@ export async function saveToDisk(
       if (response.status === 204) return;
       if (!response.ok) throw new Error(`Disk save failed: ${response.status}`);
       const result = await response.json();
-      state.manuscript.filename = result.name;
-      state.desktopFileLoaded = true;
-      state.hasUnsavedChanges = false;
-      saveLocal(state.manuscript, state.activeChapter, state.hasUnsavedChanges);
-      setSaveStatus(saveStatus, "saved", "Saved");
-
+      editorStore.update((draft) => {
+        draft.manuscript.filename = result.name;
+        draft.desktopFileLoaded = true;
+        draft.hasUnsavedChanges = false;
+        draft.saveMessage = "";
+      });
       return;
     } catch (error) {
       console.error("Desktop save failed:", error);
-      setSaveStatus(saveStatus, "unsaved", "Save failed");
+      editorStore.set({ saveMessage: "Save failed" });
     }
   }
 
   if (state.fileHandle) {
     try {
-      state.canWrite = await hasWritePermission(state.fileHandle, true);
-      if (state.canWrite) {
-        await writeFile(state.fileHandle, state.manuscript, saveStatus);
-        saveLocal(state.manuscript, state.activeChapter, state.hasUnsavedChanges);
+      const canWrite = await hasWritePermission(state.fileHandle, true);
+      editorStore.set({ canWrite });
+      if (canWrite) {
+        await writeFile(state.fileHandle, state.manuscript);
         return;
       }
     } catch (error) {
       console.warn("The previous file handle is no longer writable.", error);
-      state.fileHandle = null;
-      state.canWrite = false;
+      editorStore.set({ fileHandle: null, canWrite: false });
       await storeHandle(null);
     }
   }
 
   if (!filePicker.showSaveFilePicker) {
-    download(state.manuscript, saveStatus);
-    saveLocal(state.manuscript, state.activeChapter, state.hasUnsavedChanges);
+    download(state.manuscript);
     return;
   }
 
   try {
     const handle = await filePicker.showSaveFilePicker({
       suggestedName: state.manuscript.filename,
-      types: [{
-        description: "Markdown",
-        accept: {
-          "text/markdown": [".md", ".markdown"],
-          "text/plain": [".txt"],
-        },
-      }],
+      types: MARKDOWN_TYPES,
     });
-    state.fileHandle = handle;
-    state.canWrite = true;
-    state.manuscript.filename = handle.name;
+    editorStore.update((draft) => {
+      draft.fileHandle = handle;
+      draft.canWrite = true;
+      draft.manuscript.filename = handle.name;
+    });
     await storeHandle(handle);
-    await writeFile(handle, state.manuscript, saveStatus);
-    saveLocal(state.manuscript, state.activeChapter, state.hasUnsavedChanges);
+    await writeFile(handle, state.manuscript);
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") return;
     console.warn("Native save picker failed; using a download instead.", error);
-    download(state.manuscript, saveStatus);
-    saveLocal(state.manuscript, state.activeChapter, state.hasUnsavedChanges);
+    download(state.manuscript);
   }
 }
 
@@ -136,9 +124,8 @@ export async function openFile(
       if (response.status === 204) return;
       if (!response.ok) throw new Error(`File open failed: ${response.status}`);
       const result = await response.json();
-      const file = new File([result.content], result.name);
-      state.desktopFileLoaded = true;
-      await onLoaded(file, null, false);
+      editorStore.set({ desktopFileLoaded: true });
+      await onLoaded(new File([result.content], result.name), null, false);
       return;
     } catch (error) {
       console.error("Desktop open failed:", error);
@@ -154,13 +141,7 @@ export async function openFile(
 
   try {
     const handles = await filePicker.showOpenFilePicker({
-      types: [{
-        description: "Markdown",
-        accept: {
-          "text/markdown": [".md", ".markdown"],
-          "text/plain": [".txt"],
-        },
-      }],
+      types: MARKDOWN_TYPES,
       multiple: false,
     });
     const handle = handles[0];

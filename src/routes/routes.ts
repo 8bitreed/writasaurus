@@ -11,12 +11,16 @@ export const Routes = (router: Router): Router => {
   welcomeRoutes(router);
   settingsRoutes(router);
 
-  router.all("/*", (req) => {
+  router.all("/*", async (req) => {
     const { pathname } = new URL(req.url);
     if (pathname === "/manifest.json") {
       return new Response("Not Found", { status: 404 });
     }
-    return serveDir(req, { fsRoot: "./dist", quiet: true });
+    try {
+      return await serveDir(req, { fsRoot: "./dist", quiet: true });
+    } catch {
+      return new Response("Not Found", { status: 404 });
+    }
   });
 
   return router;

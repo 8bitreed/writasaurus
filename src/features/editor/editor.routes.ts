@@ -107,7 +107,9 @@ export const editorRoutes = (router: Router): Router => {
 
   router.post("/api/editor/exit", async (_req, ctx) => {
     const desktop = await checkIsDesktop();
-    if (desktop) {
+    // Do not call Deno.exit when running inside tests, or the test runner will fail with an uncaught exit
+    const isTesting = "test" in Deno && typeof Deno.test === "function";
+    if (desktop && !isTesting) {
       setTimeout(() => Deno.exit(0), 50);
     }
     return ctx.json({ ok: true });

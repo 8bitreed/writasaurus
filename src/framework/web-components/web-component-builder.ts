@@ -3,9 +3,33 @@ import {
   registerWebComponent,
   type RuntimeComponentElement,
 } from "./create-web-component.ts";
-import type { TemplateResult } from "../html/client_html_renderer.ts";
+import { raw, type TemplateResult } from "./render-html.ts";
+import type { Subscribable } from "./state.ts";
 
-export type EmptyObject = Record<PropertyKey, never>;
+export type EmptyObject = Record<never, never>;
+
+/**
+ * Standard HTML attributes and data/aria attributes available on any element,
+ * along with custom attributes defined on the web component.
+ */
+export type HtmlAttributes = {
+  class?: string;
+  id?: string;
+  style?: string;
+  title?: string;
+  slot?: string;
+  hidden?: boolean;
+  role?: string;
+  tabindex?: number | string;
+  [key: `data-${string}`]: AttributeValue | undefined;
+  [key: `aria-${string}`]: AttributeValue | undefined;
+};
+
+export type ComponentAttributes<A extends Record<string, AttributeValue>> =
+  & HtmlAttributes
+  & {
+    [K in keyof A]?: A[K];
+  };
 export type WebComponentElement<
   State extends Record<string, unknown>,
   Attributes extends Record<string, AttributeValue> = EmptyObject,
@@ -60,8 +84,9 @@ export type WebComponentBuilder<
   ): WebComponentBuilder<S, A, M, C & Record<Name, Value>>;
   connectedCallback(callback: Hook<S, A, M, C>): WebComponentBuilder<S, A, M, C>;
   disconnectedCallback(callback: Hook<S, A, M, C>): WebComponentBuilder<S, A, M, C>;
+  subscribe(...stores: readonly Subscribable[]): WebComponentBuilder<S, A, M, C>;
   defineRender(render: Render<S, A, M, C>): WebComponentBuilder<S, A, M, C>;
-  create(): CustomElementConstructor;
+  create(): (attributes?: ComponentAttributes<A>) => TemplateResult;
 };
 
 function descriptor(value: unknown): PropertyDescriptor {
@@ -85,6 +110,7 @@ export function webComponent(tagName: string): WebComponentBuilder {
     compute: (...dependencies: never[]) => unknown;
   }>();
   let shadow: boolean | ShadowRootInit = true;
+  const stores: Subscribable[] = [];
   let render: ((element: RuntimeComponentElement) => TemplateResult) | undefined;
   let connected: ((element: RuntimeComponentElement) => void) | undefined;
   let disconnected: ((element: RuntimeComponentElement) => void) | undefined;
@@ -133,12 +159,16 @@ export function webComponent(tagName: string): WebComponentBuilder {
       disconnected = callback;
       return builder;
     },
+    subscribe(...incoming: readonly Subscribable[]) {
+      stores.push(...incoming);
+      return builder;
+    },
     defineRender(next: (element: RuntimeComponentElement) => TemplateResult) {
       render = next;
       return builder;
     },
     create() {
-      return registerWebComponent({
+      const res = registerWebComponent({
         tagName,
         observedAttributes,
         stateFactory,
@@ -147,10 +177,16 @@ export function webComponent(tagName: string): WebComponentBuilder {
         properties,
         methods,
         computed,
+        stores,
         render,
         connected,
         disconnected,
       });
+      // `res` is the runtime helper function that returns a string. Wrap it with
+      // `raw()` so the caller receives a TemplateResult and can interpolate the
+      // element directly in templates without extra escaping.
+      const helper = (attributes: Record<string, AttributeValue> = {}) => raw(res(attributes));
+      return helper;
     },
   };
   return builder as unknown as WebComponentBuilder;

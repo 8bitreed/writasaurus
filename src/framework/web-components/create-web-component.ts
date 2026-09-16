@@ -1,4 +1,5 @@
 import { renderHtml, type TemplateResult } from "./render-html.ts";
+import type { Subscribable, Unsubscribe } from "./state.ts";
 
 export type AttributeValue = string | number | boolean | null;
 export type ComponentRoot = ShadowRoot | HTMLElement;
@@ -27,6 +28,7 @@ export interface WebComponentDefinition {
     compute: (...dependencies: never[]) => unknown;
   }>;
   render?: (element: RuntimeComponentElement) => TemplateResult;
+  stores?: readonly Subscribable[];
   connected?: (element: RuntimeComponentElement) => void;
   disconnected?: (element: RuntimeComponentElement) => void;
 }
@@ -63,13 +65,28 @@ function sheet(css: string): CSSStyleSheet | null {
   return result;
 }
 
-export function registerWebComponent(definition: WebComponentDefinition): CustomElementConstructor {
+/**
+ * Register a web component definition with the browser and return a small
+ * render helper function.
+ *
+ * The returned function accepts an attributes record and returns an HTML
+ * string for the element. The fluent builder (`webComponent(...).create()`)
+ * wraps that string with `raw()` so callers receive a `TemplateResult` they
+ * can interpolate directly into templates.
+ */
+export function registerWebComponent(definition: WebComponentDefinition) {
   const existing = customElements.get(definition.tagName);
-  if (existing) return existing;
   const observed = Object.freeze(Object.keys(definition.observedAttributes));
   const sheets = definition.styles.map(sheet).filter((value): value is CSSStyleSheet =>
     value !== null
   );
+  // Always return the same render helper function. If the element is already
+  // registered we avoid redefining it, but callers still get a callable helper.
+  const renderHelper = (attributes: Record<string, AttributeValue> = {}) =>
+    `<${definition.tagName} ${
+      Object.entries(attributes).map(([k, v]) => `${k}="${v}"`).join(" ")
+    }></${definition.tagName}>`;
+  if (existing) return renderHelper;
   class DefinedWebComponent extends HTMLElement implements RuntimeComponentElement {
     static get observedAttributes(): readonly string[] {
       return observed;
@@ -78,6 +95,7 @@ export function registerWebComponent(definition: WebComponentDefinition): Custom
     readonly state: Record<string, unknown>;
     readonly computed: Readonly<Record<string, unknown>>;
     #mounted = false;
+    #storeUnsubscribes: Unsubscribe[] = [];
     constructor() {
       super();
       this.root = definition.shadow === false ? this : this.attachShadow(
@@ -152,10 +170,20 @@ export function registerWebComponent(definition: WebComponentDefinition): Custom
         }
         this.#mounted = true;
       }
+      if (definition.stores?.length) {
+        for (const unsub of this.#storeUnsubscribes) unsub();
+        this.#storeUnsubscribes = definition.stores.map((store) =>
+          store.subscribe(() => {
+            if (this.#mounted) this.render();
+          })
+        );
+      }
       this.render();
       definition.connected?.(this);
     }
     disconnectedCallback(): void {
+      for (const unsub of this.#storeUnsubscribes) unsub();
+      this.#storeUnsubscribes = [];
       definition.disconnected?.(this);
     }
     attributeChangedCallback(_n: string, old: string | null, next: string | null): void {
@@ -166,5 +194,8 @@ export function registerWebComponent(definition: WebComponentDefinition): Custom
     Object.defineProperty(DefinedWebComponent.prototype, name, descriptor);
   }
   customElements.define(definition.tagName, DefinedWebComponent);
-  return DefinedWebComponent;
+  return (attributes: Record<string, AttributeValue> = {}) =>
+    `<${definition.tagName} ${
+      Object.entries(attributes).map(([k, v]) => `${k}="${v}"`).join(" ")
+    }></${definition.tagName}>`;
 }

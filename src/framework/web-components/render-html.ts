@@ -80,6 +80,22 @@ export function html(strings: TemplateStringsArray, ...values: unknown[]): Templ
   return { strings, values, __isTemplateResult: true };
 }
 
+/**
+ * Treat `value` as pre-escaped HTML and parse it into DOM nodes when
+ * interpolated into a template. Use sparingly — this bypasses the normal
+ * escaping and can introduce XSS if untrusted content is inserted.
+ */
+export function raw(value: string): TemplateResult {
+  // The parser only needs the template `strings` array; values can be empty.
+  // Construct a TemplateStringsArray via a cast so we can reuse the same
+  // parsing path as normal tagged templates.
+  return {
+    strings: [value] as unknown as TemplateStringsArray,
+    values: [],
+    __isTemplateResult: true,
+  };
+}
+
 interface RepeatEntry {
   readonly key: unknown;
   readonly value: TemplateResult;

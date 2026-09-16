@@ -1,41 +1,29 @@
 import { html, webComponent } from "../../../framework/web-components/index.ts";
+import { syncTruncationTooltip } from "../../../lib/text/text.ts";
+import { renameManuscript } from "./actions.ts";
+import { editorStore, state } from "./state.ts";
+import type { Unsubscribe } from "../../../framework/web-components/index.ts";
 import "../../../shared/components/save-status.ts";
 
 export type EditorTopbar = HTMLElement & {
   closeMenu(): void;
   focusFirstMenuItem(): void;
-  setDetails(details: {
-    title: string;
-    filename: string;
-    saveMessage: string;
-    saveStatus: "" | "saved" | "unsaved";
-    isDesktop: boolean;
-  }): void;
   toggleMenu(focusFirst?: boolean): boolean;
 };
 
-type TopbarState = {
-  title: string;
-  filename: string;
-  saveMessage: string;
-  saveStatus: "" | "saved" | "unsaved";
-  isDesktop: boolean;
-  menuOpen: boolean;
-};
+const tooltipSubscriptions = new WeakMap<HTMLElement, Unsubscribe>();
 
-webComponent("editor-topbar")
+function syncTooltips(element: HTMLElement): void {
+  const title = element.querySelector<HTMLInputElement>("#manuscript-title");
+  const filename = element.querySelector<HTMLElement>("#filename");
+  if (title) syncTruncationTooltip(title);
+  if (filename) syncTruncationTooltip(filename);
+}
+
+export const editorTopbar = webComponent("editor-topbar")
   .defineShadow(false)
-  .defineState<TopbarState>({
-    title: "Untitled Manuscript",
-    filename: "manuscript.md",
-    saveMessage: "",
-    saveStatus: "",
-    isDesktop: false,
-    menuOpen: false,
-  })
-  .defineMethod("setDetails", (element) => (details: Omit<TopbarState, "menuOpen">) => {
-    Object.assign(element.state, details);
-  })
+  .subscribe(editorStore)
+  .defineState({ menuOpen: false })
   .defineMethod("focusFirstMenuItem", (element) => () => {
     element.$<HTMLElement>(".menu-item")?.focus();
   })
@@ -48,11 +36,15 @@ webComponent("editor-topbar")
     element.state.menuOpen = false;
   })
   .defineRender((element) => {
-    const { filename, isDesktop, menuOpen, saveMessage, saveStatus, title } = element.state;
+    const { menuOpen } = element.state;
+    const { filename } = state.manuscript;
+    const title = String(state.manuscript.frontmatter.title ?? "Untitled Manuscript");
+    const saveStatus = state.hasUnsavedChanges ? "unsaved" : "saved";
+    const saveMessage = state.saveMessage ||
+      (state.hasUnsavedChanges ? "Unsaved changes" : `Saved to ${filename}`);
     const emitAction = (action: "save" | "quit") => () => element.emit("editoraction", { action });
     const updateTitle = (event: Event) => {
-      const input = event.currentTarget as HTMLInputElement;
-      element.emit("manuscripttitlechange", { title: input.value });
+      renameManuscript((event.currentTarget as HTMLInputElement).value);
     };
 
     return html`
@@ -85,7 +77,7 @@ webComponent("editor-topbar")
           <a href="/settings" class="menu-item">Settings</a>
           <a href="/about" class="menu-item">About</a>
           <div class="menu-divider"></div>
-          ${isDesktop
+          ${state.isDesktop
             ? html`<button type="button" class="menu-item quit" @click=${
               emitAction("quit")
             }>Quit</button>`
@@ -93,5 +85,14 @@ webComponent("editor-topbar")
         </nav>
       </header>
     `;
+  })
+  .connectedCallback((element) => {
+    syncTooltips(element);
+    // Runs after the store-driven re-render, so tooltips match the latest DOM.
+    tooltipSubscriptions.set(element, editorStore.subscribe(() => syncTooltips(element)));
+  })
+  .disconnectedCallback((element) => {
+    tooltipSubscriptions.get(element)?.();
+    tooltipSubscriptions.delete(element);
   })
   .create();

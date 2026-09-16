@@ -6,6 +6,7 @@ export interface EditorEvents {
     target: string;
     value?: string;
   };
+  focusChapterTitle: undefined;
   toggleSidebar: undefined;
 }
 

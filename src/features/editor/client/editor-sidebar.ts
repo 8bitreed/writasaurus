@@ -4,20 +4,16 @@ import {
   webComponent,
   type WebComponentElement,
 } from "../../../framework/web-components/index.ts";
-import type { Chapter } from "./types.ts";
+import { addChapter, deleteChapter, selectChapter } from "./actions.ts";
+import { editorEvents } from "./editor-events.ts";
+import { editorStore, state } from "./state.ts";
 
 export interface EditorSidebar extends WebComponentElement<Record<string, never>> {
   collapsed: boolean;
   collapse(): void;
   expand(): void;
-  setChapters(chapters: readonly Chapter[], activeChapter: number): void;
   toggle(): boolean;
 }
-
-type SidebarState = {
-  activeChapter: number;
-  chapters: readonly Chapter[];
-};
 
 function getCollapsed(this: EditorSidebar): boolean {
   return this.classList.contains("collapsed");
@@ -41,44 +37,45 @@ function expand(this: EditorSidebar): void {
   this.collapsed = false;
 }
 
-webComponent("editor-sidebar")
+export const editorSidebar = webComponent("editor-sidebar")
   .defineShadow(false)
-  .defineState<SidebarState>({ activeChapter: 0, chapters: [] })
+  .subscribe(editorStore)
   .defineProperty("collapsed", { get: getCollapsed, set: setCollapsed })
   .defineProperty("toggle", toggle)
   .defineProperty("collapse", collapse)
   .defineProperty("expand", expand)
-  .defineMethod(
-    "setChapters",
-    (element) => (chapters: readonly Chapter[], activeChapter: number) => {
-      element.state.chapters = [...chapters];
-      element.state.activeChapter = activeChapter;
-    },
-  )
   .defineRender((element) => {
-    const selectChapter = (index: number) => () => element.emit("chapterselect", { index });
-    const deleteChapter = (index: number) => (event: Event) => {
-      event.stopPropagation();
-      element.emit("chapterdelete", { index });
+    const sidebar = element as unknown as EditorSidebar;
+    const { chapters } = state.manuscript;
+    const onSelect = (index: number) => () => {
+      selectChapter(index);
+      if (matchMedia("(max-width: 55rem)").matches) sidebar.collapse();
     };
-    const chapterCount = element.state.chapters.length;
+    const onDelete = (index: number) => (event: Event) => {
+      event.stopPropagation();
+      deleteChapter(index);
+    };
+    const onAdd = () => {
+      addChapter();
+      editorEvents.emit("focusChapterTitle", undefined);
+    };
 
     return html`
       <div class="sidebar-heading">
         <h2>Chapters</h2>
-        <button type="button" class="small" @click=${() => element.emit("chapteradd")}>Add</button>
+        <button type="button" class="small" @click=${onAdd}>Add</button>
       </div>
       <ol id="chapter-list">
         ${repeat(
-          element.state.chapters,
+          chapters,
           (chapter) => chapter.id,
           (chapter, index) =>
             html`
-              <li class=${`chapter-item${index === element.state.activeChapter ? " active" : ""}`}
-                @click=${selectChapter(index)}>
+              <li class=${`chapter-item${index === state.activeChapter ? " active" : ""}`}
+                @click=${onSelect(index)}>
                 <span>${chapter.title}</span>
                 <small>${chapter.wordCount.toLocaleString()}w</small>
-                <button type="button" aria-label=${`Delete ${chapter.title}`} @click=${deleteChapter(
+                <button type="button" aria-label=${`Delete ${chapter.title}`} @click=${onDelete(
                   index,
                 )}>
                   Delete
@@ -87,7 +84,7 @@ webComponent("editor-sidebar")
             `,
         )}
       </ol>
-      <span id="sidebar-stats">${chapterCount} chapter${chapterCount === 1 ? "" : "s"}</span>
+      <span id="sidebar-stats">${chapters.length} chapter${chapters.length === 1 ? "" : "s"}</span>
     `;
   })
   .create();

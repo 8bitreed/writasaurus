@@ -1,9 +1,10 @@
 import { html, webComponent } from "../../framework/web-components/index.ts";
 
-webComponent("hello-world")
+const helloWorld = webComponent("hello-world")
   .defineShadow(false)
-  .defineObservedAttributes({
+  .defineObservedAttributes<{ name: string; test?: string }>({
     name: "world!",
+    test: "test",
   })
   .connectedCallback((_el) => {
     console.log("hello-world connected");
@@ -13,7 +14,7 @@ webComponent("hello-world")
   })
   .create();
 
-webComponent("about-counter")
+export const AboutCounter = webComponent("about-counter")
   .defineState({
     count: 0,
   })
@@ -36,7 +37,7 @@ webComponent("about-counter")
       <p>Count: ${el.state.count}</p>
       <button class="button primary" @click=${el.increment}>Increment</button>
       ${el.state.count >= 10 ? html`<p>You've reached 10!</p>` : ""}
-      <hello-world name="Frodo"></hello-world>
+      ${helloWorld()}
     `;
   })
   .create();

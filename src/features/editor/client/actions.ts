@@ -1,98 +1,70 @@
 import type { WritableFileHandle } from "./types.ts";
-import { blankManuscript, chapter, parseManuscript, SAMPLE_NOVEL } from "./data.ts";
-import { saveLocal, storeHandle } from "./storage.ts";
-import { state } from "./state.ts";
-
-export interface ActionCallbacks {
-  render: () => void;
-  onChanged?: () => void;
-  onLoaded?: (filename: string) => void;
-}
+import { chapter, parseManuscript } from "./data.ts";
+import { storeHandle } from "./storage.ts";
+import { editorStore, state } from "./state.ts";
 
 export async function loadFile(
   file: File,
   handle: WritableFileHandle | null = null,
   writable = false,
-  callbacks?: ActionCallbacks,
 ): Promise<void> {
-  state.manuscript = parseManuscript(await file.text(), file.name);
-  state.activeChapter = 0;
-  state.fileHandle = handle;
-  state.canWrite = writable;
-  state.hasUnsavedChanges = false;
+  editorStore.set({
+    manuscript: parseManuscript(await file.text(), file.name),
+    activeChapter: 0,
+    fileHandle: handle,
+    canWrite: writable,
+    hasUnsavedChanges: false,
+    saveMessage: "",
+  });
   await storeHandle(handle);
-  saveLocal(state.manuscript, state.activeChapter, state.hasUnsavedChanges);
-  if (callbacks) {
-    callbacks.render();
-    callbacks.onLoaded?.(file.name);
-  }
 }
 
-export function newManuscript(callbacks: ActionCallbacks): void {
-  const title = prompt("Manuscript title:", "My Novel")?.trim() || "Untitled Manuscript";
-  state.manuscript = blankManuscript(title);
-  state.activeChapter = 0;
-  state.fileHandle = null;
-  state.canWrite = false;
-  state.desktopFileLoaded = false;
-  state.hasUnsavedChanges = false;
-  if (state.isDesktop) void fetch("/api/editor/close", { method: "POST" });
-  void storeHandle(null);
-  saveLocal(state.manuscript, state.activeChapter, state.hasUnsavedChanges);
-  callbacks.render();
-  callbacks.onLoaded?.(state.manuscript.filename);
+export function addChapter(): void {
+  editorStore.update((draft) => {
+    draft.manuscript.chapters.push(
+      chapter(`Chapter ${draft.manuscript.chapters.length + 1}: Untitled`, "<p></p>"),
+    );
+    draft.activeChapter = draft.manuscript.chapters.length - 1;
+    draft.hasUnsavedChanges = true;
+  });
 }
 
-export function loadSample(callbacks: ActionCallbacks): void {
-  state.manuscript = parseManuscript(
-    SAMPLE_NOVEL,
-    "the-chroniclers-compass.md",
-  );
-  state.activeChapter = 0;
-  state.fileHandle = null;
-  state.canWrite = false;
-  state.desktopFileLoaded = false;
-  state.hasUnsavedChanges = true;
-  if (state.isDesktop) void fetch("/api/editor/close", { method: "POST" });
-  void storeHandle(null);
-  saveLocal(state.manuscript, state.activeChapter, state.hasUnsavedChanges);
-  callbacks.render();
-  callbacks.onChanged?.();
-}
-
-export function addChapter(callbacks: ActionCallbacks): void {
-  state.manuscript.chapters.push(
-    chapter(`Chapter ${state.manuscript.chapters.length + 1}: Untitled`, "<p></p>"),
-  );
-  state.activeChapter = state.manuscript.chapters.length - 1;
-  state.hasUnsavedChanges = true;
-  saveLocal(state.manuscript, state.activeChapter, state.hasUnsavedChanges);
-  callbacks.render();
-  callbacks.onChanged?.();
-}
-
-export function deleteChapter(index: number, callbacks: ActionCallbacks): void {
+export function deleteChapter(index: number): void {
   if (state.manuscript.chapters.length === 1) {
     alert("A manuscript needs one chapter.");
     return;
   }
-  const item = state.manuscript.chapters[index];
-  if (!confirm(`Delete "${item?.title}"?`)) return;
-  state.manuscript.chapters.splice(index, 1);
-  if (index < state.activeChapter) {
-    state.activeChapter--;
-  } else if (index === state.activeChapter) {
-    state.activeChapter = Math.min(state.activeChapter, state.manuscript.chapters.length - 1);
-  }
-  state.hasUnsavedChanges = true;
-  saveLocal(state.manuscript, state.activeChapter, state.hasUnsavedChanges);
-  callbacks.render();
-  callbacks.onChanged?.();
+  if (!confirm(`Delete "${state.manuscript.chapters[index]?.title}"?`)) return;
+  editorStore.update((draft) => {
+    draft.manuscript.chapters.splice(index, 1);
+    if (index < draft.activeChapter) {
+      draft.activeChapter--;
+    } else if (index === draft.activeChapter) {
+      draft.activeChapter = Math.min(draft.activeChapter, draft.manuscript.chapters.length - 1);
+    }
+    draft.hasUnsavedChanges = true;
+  });
 }
 
-export function selectChapter(index: number, callbacks: ActionCallbacks): void {
+export function selectChapter(index: number): void {
   if (index === state.activeChapter) return;
-  state.activeChapter = index;
-  saveLocal(state.manuscript, state.activeChapter, state.hasUnsavedChanges);
-  callbacks.render();
+  editorStore.set({ activeChapter: index });
+}
+
+export function renameChapter(title: string): void {
+  editorStore.update((draft) => {
+    const chapter = draft.manuscript.chapters[draft.activeChapter];
+    if (!chapter) return;
+    chapter.title = title.trim() || `Chapter ${draft.activeChapter + 1}`;
+    draft.hasUnsavedChanges = true;
+    draft.saveMessage = "";
+  });
+}
+
+export function renameManuscript(title: string): void {
+  editorStore.update((draft) => {
+    draft.manuscript.frontmatter.title = title.trim() || "Untitled Manuscript";
+    draft.hasUnsavedChanges = true;
+    draft.saveMessage = "";
+  });
 }

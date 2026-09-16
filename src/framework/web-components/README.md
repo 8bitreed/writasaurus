@@ -28,6 +28,37 @@ webComponent("simple-counter")
 <simple-counter></simple-counter>
 ```
 
+You can also include the component from JavaScript templates by calling the value returned from
+`.create()` (it returns a render helper):
+
+```ts
+const simpleCounter = webComponent("simple-counter")
+  .defineState({ count: 0 })
+  .defineMethod("increment", (element) => () => element.state.count++)
+  .defineRender(
+    (element) =>
+      html`<button type="button" @click=${element.increment}>
+        Count: ${element.state.count}
+      </button>`,
+  )
+  .create();
+
+// In another template:
+html`${simpleCounter({ class: "my-counter", id: "main-counter" })}`;
+```
+
+The helper accepts the component's observed attributes combined with standard HTML attributes
+(`class`, `id`, `style`, `hidden`, `role`, `tabindex`, `data-*`, `aria-*`, etc.). Arguments are
+optional if all attributes have defaults or are optional:
+
+```ts
+html`${simpleCounter()}`;
+```
+
+The helper returns a `TemplateResult` whose markup is parsed when it is rendered, so use it to
+compose static shells (the editor builds its layout this way). For values that change between
+renders, write the tag directly and bind them: `html`<word-count total=${total}></word-count>``.
+
 ## Builder API
 
 Every builder call returns the builder, allowing later calls to receive more precise TypeScript
@@ -163,6 +194,57 @@ webComponent("editor-canvas")
   .create();
 ```
 
+### `subscribe(...stores)`
+
+Subscribes the component to one or more external reactive stores created via `createStore()`. You
+can pass any number of stores variadically or chain multiple `.subscribe()` calls:
+
+```ts
+webComponent("dashboard-widget")
+  .subscribe(userStore, themeStore)
+  .subscribe(notificationsStore)
+  .defineRender(() => html`...`)
+  .create();
+```
+
+The component automatically subscribes to all configured stores when mounted (`connectedCallback`)
+and triggers a re-render when any of them updates. It automatically unsubscribes from every store
+when unmounted (`disconnectedCallback`), preventing memory leaks.
+
+```ts
+import { createStore, html, webComponent } from "../framework/web-components/index.ts";
+
+export const appStore = createStore({
+  theme: "dark",
+  user: "Alice",
+});
+
+webComponent("user-badge")
+  .subscribe(appStore)
+  .defineRender(
+    () => html`<div>User: ${appStore.state.user} (${appStore.state.theme})</div>`,
+  )
+  .create();
+```
+
+Stores are shallow: assigning a top-level property notifies subscribers, but mutating a nested
+object or array does not. Use `update()` for nested edits and `set()` for partial updates; both
+notify subscribers exactly once, no matter how many properties they touch.
+
+```ts
+appStore.set({ theme: "light" });
+appStore.update((state) => {
+  state.chapters.push(chapter);
+  state.activeChapter = state.chapters.length - 1;
+});
+```
+
+Prefer a store over parent-to-child method calls whenever several components need the same data:
+every subscriber renders from one source of truth, so no component has to push updates into another.
+Components that own uncontrolled DOM (such as `contenteditable` regions or focused inputs) should
+subscribe manually with `store.subscribe(...)` and update that DOM only when the underlying value
+really changed, so re-renders never move the caret.
+
 ### Lifecycle callbacks
 
 Use native Custom Element lifecycle names on the builder:
@@ -216,7 +298,13 @@ html`<span class=${`status ${state}`}></span>`;
 ## Registration
 
 Finish each component definition with `.create()`. It defines the custom element if its tag name has
-not already been registered, and returns its constructor.
+not already been registered, and returns a render helper function you can call to insert the element
+into templates. The helper returns a `TemplateResult` so it can be interpolated directly into `html`
+templates.
+
+The element's constructor is registered with the browser `customElements` registry but is not
+returned from `.create()`; use `document.createElement("tag-name")` or query the DOM when you need
+the element instance.
 
 ## Testing
 

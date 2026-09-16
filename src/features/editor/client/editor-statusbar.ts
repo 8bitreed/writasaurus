@@ -1,37 +1,15 @@
-import {
-  html,
-  webComponent,
-  type WebComponentElement,
-} from "../../../framework/web-components/index.ts";
+import { html, webComponent } from "../../../framework/web-components/index.ts";
 import { getWordsPerPagePreference } from "../../../lib/settings.ts";
 import { editorEvents } from "./editor-events.ts";
+import { activeChapter, editorStore, totalWords } from "./state.ts";
 import "./word-count.ts";
-
-export interface EditorStatusbar extends WebComponentElement<EditorStats> {
-  setStats(options: EditorStats): void;
-}
-
-export type EditorStats = {
-  chapterWords: number;
-  chapterChars: number;
-  totalWords: number;
-  wordsPerPage?: number;
-};
-
-function setStats(this: EditorStatusbar, options: EditorStats): void {
-  Object.assign(this.state, {
-    chapterWords: options.chapterWords,
-    chapterChars: options.chapterChars,
-    totalWords: options.totalWords,
-    wordsPerPage: options.wordsPerPage ?? getWordsPerPagePreference(),
-  });
-}
 
 function toggleSidebar(): void {
   editorEvents.emit("toggleSidebar", undefined);
 }
 
-webComponent("editor-statusbar")
+export const editorStatusbar = webComponent("editor-statusbar")
+  .subscribe(editorStore)
   .defineStyles(/* css */ `
     :host {
       align-items: center;
@@ -95,10 +73,8 @@ webComponent("editor-statusbar")
       }
     }
   `)
-  .defineState({ chapterChars: 0, chapterWords: 0, totalWords: 0, wordsPerPage: 300 })
-  .defineProperty("setStats", setStats)
-  .defineRender(({ state }) => {
-    const { chapterChars, chapterWords, totalWords, wordsPerPage } = state;
+  .defineRender(() => {
+    const chapter = activeChapter();
 
     return html`
       <button type="button" aria-label="Toggle chapters panel" title="Toggle chapters panel (Ctrl+B)"
@@ -106,10 +82,10 @@ webComponent("editor-statusbar")
         Chapters <kbd>Ctrl+B</kbd>
       </button>
       <word-count
-        chapter-words=${chapterWords}
-        chapter-chars=${chapterChars}
-        total-words=${totalWords}
-        words-per-page=${wordsPerPage}
+        chapter-words=${chapter?.wordCount ?? 0}
+        chapter-chars=${chapter?.charCount ?? 0}
+        total-words=${totalWords()}
+        words-per-page=${getWordsPerPagePreference()}
       ></word-count>
     `;
   })

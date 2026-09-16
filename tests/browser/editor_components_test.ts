@@ -5,14 +5,51 @@ function assert(condition: unknown, message = "Assertion failed"): asserts condi
   if (!condition) throw new Error(message);
 }
 
-async function withEditorPage(test: (page: Page) => Promise<void>): Promise<void> {
-  const server = Deno.serve({ hostname: "127.0.0.1", port: 0, onListen() {} }, createApp());
-  const address = server.addr as Deno.NetAddr;
-  // Use the installed Chromium build rather than Playwright's optional headless-shell binary.
-  const browser = await chromium.launch({
+async function launchBrowser() {
+  const customPath = Deno.env.get("PLAYWRIGHT_CHROME_PATH");
+  if (customPath) {
+    return await chromium.launch({
+      executablePath: customPath,
+      headless: true,
+      args: ["--no-sandbox"],
+    });
+  }
+
+  // Look for system-installed Chromium/Chrome/Brave binaries if the default Playwright cache doesn't exist
+  const candidates = [
+    "/snap/bin/chromium",
+    "/usr/bin/google-chrome",
+    "/usr/bin/chromium-browser",
+    "/usr/bin/chromium",
+    "/usr/bin/brave-browser",
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      const stat = await Deno.stat(candidate);
+      if (stat.isFile || stat.isSymlink) {
+        return await chromium.launch({
+          executablePath: candidate,
+          headless: true,
+          args: ["--no-sandbox"],
+        });
+      }
+    } catch {
+      // not available, continue
+    }
+  }
+
+  // Fall back to Playwright's default resolution
+  return await chromium.launch({
     executablePath: chromium.executablePath(),
     headless: true,
   });
+}
+
+async function withEditorPage(test: (page: Page) => Promise<void>): Promise<void> {
+  const server = Deno.serve({ hostname: "127.0.0.1", port: 0, onListen() {} }, createApp());
+  const address = server.addr as Deno.NetAddr;
+  const browser = await launchBrowser();
   const page = await browser.newPage();
 
   try {
@@ -77,30 +114,39 @@ Deno.test("browser: save status renders observed attribute updates", async () =>
   });
 });
 
-Deno.test("browser: status bar delegates stats rendering to word-count", async () => {
-  await withEditorPage(async (page) => {
-    const statusbar = page.locator("editor-statusbar");
-    await statusbar.evaluate((element) => {
-      (element as HTMLElement & { setStats(options: object): void }).setStats({
-        chapterWords: 123,
-        chapterChars: 456,
-        totalWords: 789,
-        wordsPerPage: 300,
-      });
-    });
+function chapterWords(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    const wordCount = document.querySelector("editor-statusbar")?.shadowRoot
+      ?.querySelector("word-count");
+    const text = wordCount?.shadowRoot?.textContent ?? "";
+    return Number(text.match(/Chapter: ([\d,]+) words/)?.[1]?.replace(/,/g, "") ?? -1);
+  });
+}
 
-    const rendered = await statusbar.evaluate((element) => {
-      const wordCount = element.shadowRoot?.querySelector("word-count");
-      return {
-        customElementDefined: customElements.get("word-count") !== undefined,
-        html: wordCount?.outerHTML ?? "",
-        text: wordCount?.shadowRoot?.textContent ?? "",
-      };
-    });
+Deno.test("browser: status bar renders live stats from the editor store", async () => {
+  await withEditorPage(async (page) => {
+    const before = await chapterWords(page);
+    assert(before >= 0, "Expected the status bar to render chapter words");
+
+    await page.locator("#editor").click();
+    await page.keyboard.press("End");
+    await page.keyboard.type(" Hello brave new world");
+
+    await page.waitForFunction(
+      (expected) => {
+        const wordCount = document.querySelector("editor-statusbar")?.shadowRoot
+          ?.querySelector("word-count");
+        return wordCount?.shadowRoot?.textContent?.includes(`Chapter: ${expected} words`) === true;
+      },
+      before + 4,
+    );
+
+    const saveStatus = await page.locator("#save-status").evaluate((element) =>
+      element.shadowRoot?.textContent ?? ""
+    );
     assert(
-      rendered.text.includes("Chapter: 123 words · 456 characters") &&
-        rendered.text.includes("Manuscript: 789 words · 2.6 pages"),
-      `Unexpected word-count rendering: ${JSON.stringify(rendered)}`,
+      saveStatus.includes("Unsaved changes"),
+      `Expected the topbar to show unsaved changes, got ${saveStatus}`,
     );
   });
 });
