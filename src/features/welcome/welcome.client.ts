@@ -56,8 +56,7 @@ async function closeActiveDesktopFile(): Promise<void> {
 }
 
 newButton?.addEventListener("click", async () => {
-  const title = prompt("Manuscript title:", "My Novel")?.trim() || "Untitled Manuscript";
-  const manuscript = blankManuscript(title);
+  const manuscript = blankManuscript();
   saveLocal(manuscript, 0);
   await storeHandle(null);
   await closeActiveDesktopFile();

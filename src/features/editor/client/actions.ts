@@ -61,10 +61,25 @@ export function renameChapter(title: string): void {
   });
 }
 
+/**
+ * Applies the title as typed, without forcing a fallback. Forcing "Untitled
+ * Manuscript" here would fire on every keystroke, so clearing the field to
+ * type a new title would immediately snap back to the fallback before the
+ * user could type anything else. The fallback is only applied on blur, via
+ * {@linkcode commitManuscriptTitle}.
+ */
 export function renameManuscript(title: string): void {
   editorStore.update((draft) => {
-    draft.manuscript.frontmatter.title = title.trim() || "Untitled Manuscript";
+    draft.manuscript.frontmatter.title = title;
     draft.hasUnsavedChanges = true;
     draft.saveMessage = "";
+  });
+}
+
+/** Falls back to a default title once the manuscript title field is no longer being edited. */
+export function commitManuscriptTitle(): void {
+  editorStore.update((draft) => {
+    draft.manuscript.frontmatter.title = String(draft.manuscript.frontmatter.title ?? "").trim() ||
+      "Untitled Manuscript";
   });
 }

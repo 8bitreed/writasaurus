@@ -1,6 +1,6 @@
 import { html, webComponent } from "../../../framework/web-components/index.ts";
 import { syncTruncationTooltip } from "../../../lib/text/text.ts";
-import { renameManuscript } from "./actions.ts";
+import { commitManuscriptTitle, renameManuscript } from "./actions.ts";
 import { editorStore, state } from "./state.ts";
 import type { Unsubscribe } from "../../../framework/web-components/index.ts";
 import "../../../shared/components/save-status.ts";
@@ -46,11 +46,12 @@ export const editorTopbar = webComponent("editor-topbar")
     const updateTitle = (event: Event) => {
       renameManuscript((event.currentTarget as HTMLInputElement).value);
     };
+    const commitTitle = () => commitManuscriptTitle();
 
     return html`
       <header class="editor-topbar">
         <div class="topbar-center">
-          <input id="manuscript-title" .value=${title} @input=${updateTitle}
+          <input id="manuscript-title" .value=${title} @input=${updateTitle} @blur=${commitTitle}
             aria-label="Manuscript title" placeholder="Untitled Manuscript">
           <span class="topbar-meta">
             <span id="filename">${filename}</span>
