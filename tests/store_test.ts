@@ -1,4 +1,5 @@
 import { createStore } from "../src/framework/web-components/state.ts";
+import { reactive } from "../src/framework/web-components/reactive-state.ts";
 
 function assertEquals<T>(actual: T, expected: T): void {
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
@@ -51,4 +52,21 @@ Deno.test("store: update notifies once for nested mutations", () => {
   assertEquals(store.state.items, [1, 2, 3, 4]);
   assertEquals(store.state.meta.open, true);
   assertEquals(notifications, 1);
+});
+
+Deno.test("reactive: notifies when a property changes and ignores identical assignments", () => {
+  let notifications = 0;
+  const state = reactive({ count: 0, title: "Initial" }, () => notifications++);
+
+  state.count = 1;
+  assertEquals(state.count, 1);
+  assertEquals(notifications, 1);
+
+  // Identical value does not trigger notification
+  state.count = 1;
+  assertEquals(notifications, 1);
+
+  // Deleting property triggers notification
+  delete (state as { title?: string }).title;
+  assertEquals(notifications, 2);
 });

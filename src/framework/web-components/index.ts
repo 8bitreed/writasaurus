@@ -1,10 +1,5 @@
-export { html, raw, repeat, type RepeatResult, type TemplateResult } from "./render-html.ts";
-export { createStore, type Store, type Subscribable, type Unsubscribe } from "./state.ts";
-export {
-  type ComponentAttributes,
-  type EmptyObject,
-  type HtmlAttributes,
-  webComponent,
-  type WebComponentBuilder,
-  type WebComponentElement,
-} from "./web-component-builder.ts";
+export { html, raw, repeat } from "./render-html.ts";
+export { createStore } from "./state.ts";
+export { reactive } from "./reactive-state.ts";
+export { webComponent } from "./builder.ts";
+export * from "./types.ts";

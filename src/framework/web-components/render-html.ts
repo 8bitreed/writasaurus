@@ -17,6 +17,8 @@
  *   - `@name="${handler}"` -> event listener binding
  */
 
+import type { RepeatEntry, RepeatResult, TemplateResult } from "./types.ts";
+
 const HOLE_START = "\u0001";
 const HOLE_END = "\u0002";
 const UNSET: unique symbol = Symbol("client-html-renderer-unset");
@@ -56,13 +58,6 @@ function decodeEntities(value: string): string {
   );
 }
 
-/** Result of tagging a template literal with {@link html}. */
-export interface TemplateResult {
-  readonly strings: TemplateStringsArray;
-  readonly values: readonly unknown[];
-  readonly __isTemplateResult: true;
-}
-
 function isTemplateResult(value: unknown): value is TemplateResult {
   return (
     typeof value === "object" &&
@@ -94,17 +89,6 @@ export function raw(value: string): TemplateResult {
     values: [],
     __isTemplateResult: true,
   };
-}
-
-interface RepeatEntry {
-  readonly key: unknown;
-  readonly value: TemplateResult;
-}
-
-/** Result of calling {@link repeat}; recognized specially by `renderHtml`. */
-export interface RepeatResult {
-  readonly entries: readonly RepeatEntry[];
-  readonly __isRepeatResult: true;
 }
 
 function isRepeatResult(value: unknown): value is RepeatResult {

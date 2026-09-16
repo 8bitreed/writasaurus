@@ -1,53 +1,13 @@
-import { renderHtml, type TemplateResult } from "./render-html.ts";
-import type { Subscribable, Unsubscribe } from "./state.ts";
+import { reactive } from "./reactive-state.ts";
+import { renderHtml } from "./render-html.ts";
+import type {
+  AttributeValue,
+  ComponentRoot,
+  RuntimeComponentElement,
+  Unsubscribe,
+  WebComponentDefinition,
+} from "./types.ts";
 
-export type AttributeValue = string | number | boolean | null;
-export type ComponentRoot = ShadowRoot | HTMLElement;
-
-export interface RuntimeComponentElement extends HTMLElement {
-  readonly root: ComponentRoot;
-  readonly state: Record<string, unknown>;
-  readonly observedAttribute: Readonly<Record<string, AttributeValue>>;
-  readonly computed: Readonly<Record<string, unknown>>;
-  render(): void;
-  $<T extends Element = HTMLElement>(selector: string): T | null;
-  $$<T extends Element = HTMLElement>(selector: string): NodeListOf<T>;
-  emit<T>(name: string, detail?: T, options?: CustomEventInit<T>): boolean;
-}
-
-export interface WebComponentDefinition {
-  tagName: string;
-  observedAttributes: Readonly<Record<string, AttributeValue>>;
-  stateFactory: () => Record<string, unknown>;
-  styles: readonly string[];
-  shadow: boolean | ShadowRootInit;
-  properties: ReadonlyMap<PropertyKey, PropertyDescriptor>;
-  methods: ReadonlyMap<string, (element: RuntimeComponentElement) => (...args: never[]) => unknown>;
-  computed: ReadonlyMap<string, {
-    dependencies: (element: RuntimeComponentElement) => readonly unknown[];
-    compute: (...dependencies: never[]) => unknown;
-  }>;
-  render?: (element: RuntimeComponentElement) => TemplateResult;
-  stores?: readonly Subscribable[];
-  connected?: (element: RuntimeComponentElement) => void;
-  disconnected?: (element: RuntimeComponentElement) => void;
-}
-
-function reactive(state: Record<string, unknown>, notify: () => void): Record<string, unknown> {
-  return new Proxy(state, {
-    set(t, p, v) {
-      const old = Reflect.get(t, p);
-      const ok = Reflect.set(t, p, v);
-      if (ok && !Object.is(old, v)) notify();
-      return ok;
-    },
-    deleteProperty(t, p) {
-      const ok = Reflect.deleteProperty(t, p);
-      if (ok) notify();
-      return ok;
-    },
-  });
-}
 function parse(value: string | null, fallback: AttributeValue): AttributeValue {
   if (value === null) return fallback;
   if (typeof fallback === "number") {
@@ -86,7 +46,9 @@ export function registerWebComponent(definition: WebComponentDefinition) {
     `<${definition.tagName} ${
       Object.entries(attributes).map(([k, v]) => `${k}="${v}"`).join(" ")
     }></${definition.tagName}>`;
+
   if (existing) return renderHelper;
+
   class DefinedWebComponent extends HTMLElement implements RuntimeComponentElement {
     static get observedAttributes(): readonly string[] {
       return observed;
@@ -194,8 +156,6 @@ export function registerWebComponent(definition: WebComponentDefinition) {
     Object.defineProperty(DefinedWebComponent.prototype, name, descriptor);
   }
   customElements.define(definition.tagName, DefinedWebComponent);
-  return (attributes: Record<string, AttributeValue> = {}) =>
-    `<${definition.tagName} ${
-      Object.entries(attributes).map(([k, v]) => `${k}="${v}"`).join(" ")
-    }></${definition.tagName}>`;
+
+  return renderHelper;
 }
