@@ -1,17 +1,19 @@
 import { html, webComponent } from "../../../framework/web-components/index.ts";
 
 webComponent("word-count")
-  .defineState(() => ({ showChapterStats: true }))
+  .defineState(() => ({ statsIndex: 0 }))
   .defineObservedAttributes<{
     "chapter-words": number;
-    "chapter-chars": number;
     "total-words": number;
     "words-per-page": number;
+    "daily-words": number;
+    "daily-word-goal": number;
   }>({
     "chapter-words": 0,
-    "chapter-chars": 0,
     "total-words": 0,
     "words-per-page": 300,
+    "daily-words": 0,
+    "daily-word-goal": 1500,
   })
   .defineStyles(/* css */ `
       :host {
@@ -41,25 +43,34 @@ webComponent("word-count")
     `)
   .defineRender((element) => {
     const chapterWords = element.observedAttribute["chapter-words"];
-    const chapterChars = element.observedAttribute["chapter-chars"];
     const totalWords = element.observedAttribute["total-words"];
     const wordsPerPage = element.observedAttribute["words-per-page"];
+    const dailyWords = element.observedAttribute["daily-words"];
+    const dailyWordGoal = element.observedAttribute["daily-word-goal"];
 
-    const showChapterStats = element.state.showChapterStats;
-    const stats = showChapterStats
-      ? `Chapter: ${chapterWords.toLocaleString()} words · ${chapterChars.toLocaleString()} characters`
-      : `Manuscript: ${totalWords.toLocaleString()} words · ${
+    const stats = [
+      `Chapter: ${chapterWords.toLocaleString()} words · ${
+        (chapterWords / wordsPerPage).toFixed(1)
+      } pages`,
+      `Manuscript: ${totalWords.toLocaleString()} words · ${
         (totalWords / wordsPerPage).toFixed(1)
-      } pages`;
+      } pages`,
+      `Daily Goal: ${dailyWords.toLocaleString()} / ${dailyWordGoal.toLocaleString()} words`,
+    ];
+    const nextStatsIndex = (element.state.statsIndex + 1) % stats.length;
 
     return html`
       <button
         class="stat"
         type="button"
-        aria-label="Show ${showChapterStats ? "manuscript" : "chapter"} statistics"
-        @click=${() => element.state.showChapterStats = !showChapterStats}
+        aria-label="Show ${[
+          "chapter",
+          "manuscript",
+          "daily writing goal",
+        ][nextStatsIndex]} statistics"
+        @click=${() => element.state.statsIndex = nextStatsIndex}
       >
-        ${stats}
+        ${stats[element.state.statsIndex]}
       </button>
     `;
   })

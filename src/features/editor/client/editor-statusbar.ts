@@ -1,5 +1,9 @@
 import { html, webComponent } from "../../../framework/web-components/index.ts";
-import { getWordsPerPagePreference } from "../../../lib/settings.ts";
+import {
+  getDailyWordGoalPreference,
+  getDailyWrittenWords,
+  getWordsPerPagePreference,
+} from "../../../lib/settings.ts";
 import { editorEvents } from "./editor-events.ts";
 import { activeChapter, editorStore, totalWords } from "./state.ts";
 import "./word-count.ts";
@@ -75,6 +79,9 @@ export const editorStatusbar = webComponent("editor-statusbar")
   `)
   .defineRender(() => {
     const chapter = activeChapter();
+    const manuscript = editorStore.state.manuscript;
+    const manuscriptId = `${manuscript.filename}:${manuscript.frontmatter.createdAt ?? ""}`;
+    const total = totalWords();
 
     return html`
       <button type="button" aria-label="Toggle chapters panel" title="Toggle chapters panel (Ctrl+B)"
@@ -83,9 +90,10 @@ export const editorStatusbar = webComponent("editor-statusbar")
       </button>
       <word-count
         chapter-words=${chapter?.wordCount ?? 0}
-        chapter-chars=${chapter?.charCount ?? 0}
-        total-words=${totalWords()}
+        total-words=${total}
         words-per-page=${getWordsPerPagePreference()}
+        daily-words=${getDailyWrittenWords(manuscriptId, total)}
+        daily-word-goal=${getDailyWordGoalPreference()}
       ></word-count>
     `;
   })

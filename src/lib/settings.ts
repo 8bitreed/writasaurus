@@ -99,6 +99,17 @@ export const SETTINGS_KEY = "writasaurus-settings-font";
 
 export const DEFAULT_WORDS_PER_PAGE = 300;
 export const SETTINGS_WORDS_PER_PAGE_KEY = "writasaurus-settings-words-per-page";
+export const DEFAULT_DAILY_WORD_GOAL = 1500;
+export const SETTINGS_DAILY_WORD_GOAL_KEY = "writasaurus-settings-daily-word-goal";
+export const DAILY_WRITING_PROGRESS_KEY = "writasaurus-daily-writing-progress";
+export const SETTINGS_WRITING_ASSISTANCE_KEY = "writasaurus-settings-writing-assistance";
+export const WRITING_ASSISTANCE_WORDS_KEY = "writasaurus-writing-assistance-words";
+export const WRITING_ASSISTANCE_IGNORES_KEY = "writasaurus-writing-assistance-ignores";
+
+interface DailyWritingProgress {
+  date: string;
+  startingWords: Record<string, number>;
+}
 
 export function getFontPreference(): FontOption {
   try {
@@ -154,4 +165,132 @@ export function saveWordsPerPagePreference(wordsPerPage: number): void {
   } catch (err) {
     console.warn("Could not save words per page preference", err);
   }
+}
+
+export function getDailyWordGoalPreference(): number {
+  try {
+    const saved = localStorage.getItem(SETTINGS_DAILY_WORD_GOAL_KEY);
+    if (saved !== null) {
+      const parsed = parseInt(saved, 10);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        return parsed;
+      }
+    }
+  } catch {
+    // Ignore storage errors in restricted contexts
+  }
+  return DEFAULT_DAILY_WORD_GOAL;
+}
+
+export function saveDailyWordGoalPreference(dailyWordGoal: number): void {
+  try {
+    if (Number.isFinite(dailyWordGoal) && dailyWordGoal > 0) {
+      localStorage.setItem(
+        SETTINGS_DAILY_WORD_GOAL_KEY,
+        String(Math.round(dailyWordGoal)),
+      );
+    }
+  } catch (err) {
+    console.warn("Could not save daily word goal preference", err);
+  }
+}
+
+function today(): string {
+  const now = new Date();
+  return [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, "0"),
+    String(now.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+function getDailyWritingProgress(): DailyWritingProgress {
+  const date = today();
+  try {
+    const saved = localStorage.getItem(DAILY_WRITING_PROGRESS_KEY);
+    const progress = saved ? JSON.parse(saved) as DailyWritingProgress : null;
+    if (
+      progress?.date === date && progress.startingWords &&
+      Object.values(progress.startingWords).every((words) => Number.isFinite(words) && words >= 0)
+    ) {
+      return progress;
+    }
+  } catch {
+    // Ignore storage errors in restricted contexts
+  }
+  return { date, startingWords: {} };
+}
+
+/**
+ * Returns the current manuscript's net word-count increase since it was first
+ * opened today. Deleting and later replacing words therefore does not inflate
+ * the day's progress.
+ */
+export function getDailyWrittenWords(manuscriptId: string, totalWords: number): number {
+  if (!manuscriptId || !Number.isFinite(totalWords) || totalWords < 0) return 0;
+  try {
+    const progress = getDailyWritingProgress();
+    const startingWords = progress.startingWords[manuscriptId];
+    if (startingWords === undefined) {
+      progress.startingWords[manuscriptId] = totalWords;
+      localStorage.setItem(DAILY_WRITING_PROGRESS_KEY, JSON.stringify(progress));
+      return 0;
+    }
+    return Math.max(totalWords - startingWords, 0);
+  } catch (err) {
+    console.warn("Could not read daily writing progress", err);
+    return 0;
+  }
+}
+
+export function getWritingAssistancePreference(): boolean {
+  try {
+    return localStorage.getItem(SETTINGS_WRITING_ASSISTANCE_KEY) !== "false";
+  } catch {
+    return true;
+  }
+}
+
+export function saveWritingAssistancePreference(enabled: boolean): void {
+  try {
+    localStorage.setItem(SETTINGS_WRITING_ASSISTANCE_KEY, String(enabled));
+  } catch (err) {
+    console.warn("Could not save writing assistance preference", err);
+  }
+}
+
+function getWritingAssistanceList(key: string): string[] {
+  try {
+    const saved = localStorage.getItem(key);
+    const values = saved ? JSON.parse(saved) : [];
+    return Array.isArray(values) && values.every((value) => typeof value === "string")
+      ? values
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveWritingAssistanceList(key: string, values: readonly string[]): void {
+  try {
+    localStorage.setItem(key, JSON.stringify([...new Set(values)]));
+  } catch (err) {
+    console.warn("Could not save writing assistance preference", err);
+  }
+}
+
+export function getWritingAssistanceWords(): string[] {
+  return getWritingAssistanceList(WRITING_ASSISTANCE_WORDS_KEY);
+}
+
+export function saveWritingAssistanceWords(words: readonly string[]): void {
+  saveWritingAssistanceList(WRITING_ASSISTANCE_WORDS_KEY, words);
+}
+
+export function getWritingAssistanceIgnores(): string[] {
+  return getWritingAssistanceList(WRITING_ASSISTANCE_IGNORES_KEY);
+}
+
+export function saveWritingAssistanceIgnores(ignores: readonly string[]): void {
+  saveWritingAssistanceList(WRITING_ASSISTANCE_IGNORES_KEY, ignores);
 }

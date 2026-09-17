@@ -4,9 +4,10 @@ import {
   webComponent,
   type WebComponentElement,
 } from "../../../framework/web-components/index.ts";
-import { addChapter, deleteChapter, selectChapter } from "./actions.ts";
+import { addChapter, deleteChapter, reorderChapter, selectChapter } from "./actions.ts";
 import { editorEvents } from "./editor-events.ts";
 import { editorStore, state } from "./state.ts";
+import { createDragDrop, type DragDropController } from "../../../lib/drag-drop.ts";
 
 export interface EditorSidebar extends WebComponentElement<Record<string, never>> {
   collapsed: boolean;
@@ -14,6 +15,8 @@ export interface EditorSidebar extends WebComponentElement<Record<string, never>
   expand(): void;
   toggle(): boolean;
 }
+
+const dragDropControllers = new WeakMap<HTMLElement, DragDropController>();
 
 function getCollapsed(this: EditorSidebar): boolean {
   return this.classList.contains("collapsed");
@@ -44,6 +47,20 @@ export const editorSidebar = webComponent("editor-sidebar")
   .defineProperty("toggle", toggle)
   .defineProperty("collapse", collapse)
   .defineProperty("expand", expand)
+  .connectedCallback((element) => {
+    dragDropControllers.set(
+      element,
+      createDragDrop(element, {
+        handleSelector: "[data-drag-handle]",
+        onReorder: reorderChapter,
+        keyboardEnabled: true,
+      }),
+    );
+  })
+  .disconnectedCallback((element) => {
+    dragDropControllers.get(element)?.destroy();
+    dragDropControllers.delete(element);
+  })
   .defineRender((element) => {
     const sidebar = element as unknown as EditorSidebar;
     const { chapters } = state.manuscript;
@@ -60,6 +77,11 @@ export const editorSidebar = webComponent("editor-sidebar")
       editorEvents.emit("focusChapterTitle", undefined);
     };
 
+    // Re-setup drag and drop after render when chapters change
+    setTimeout(() => {
+      (element as unknown as EditorSidebar & { setupDragDrop(): void }).setupDragDrop();
+    }, 0);
+
     return html`
       <div class="sidebar-heading">
         <h2>Chapters</h2>
@@ -71,13 +93,26 @@ export const editorSidebar = webComponent("editor-sidebar")
           (chapter) => chapter.id,
           (chapter, index) =>
             html`
-              <li class=${`chapter-item${index === state.activeChapter ? " active" : ""}`}
-                @click=${onSelect(index)}>
-                <span>${chapter.title}</span>
+              <li
+                class=${`chapter-item${index === state.activeChapter ? " active" : ""}`}
+                data-drag-item>
+                <button
+                  type="button"
+                  class="drag-handle"
+                  data-drag-handle
+                  aria-label=${`Reorder ${chapter.title}`}
+                  aria-keyshortcuts="ArrowUp ArrowDown"
+                  title="Drag to reorder">
+                  ⋮
+                </button>
+                <span class="chapter-title" @click=${onSelect(index)}>${chapter.title}</span>
                 <small>${chapter.wordCount.toLocaleString()}w</small>
-                <button type="button" aria-label=${`Delete ${chapter.title}`} @click=${onDelete(
-                  index,
-                )}>
+                <button
+                  type="button"
+                  class="delete-chapter"
+                  aria-label=${`Delete ${chapter.title}`}
+                  title="Delete chapter"
+                  @click=${onDelete(index)}>
                   Delete
                 </button>
               </li>

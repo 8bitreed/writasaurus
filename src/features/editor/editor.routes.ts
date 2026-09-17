@@ -1,41 +1,51 @@
 import { basename } from "@std/path";
 import { type Router } from "../../framework/routing/types.ts";
 import {
-  checkIsDesktop,
   chooseFile,
   clearLastFilePath,
   loadLastFilePath,
   saveLastFilePath,
 } from "../../lib/desktop.ts";
+import { epubFilename, generateEpub, isEpubFilename, parseEpub } from "../../lib/epub.ts";
+import { parseManuscript } from "./client/data.ts";
+import type { Manuscript } from "./client/types.ts";
 import { editorView } from "./editor.view.ts";
 
-export const editorRoutes = (router: Router): Router => {
+export const editorRoutes = (router: Router, options: { onExit?: () => void } = {}): Router => {
   let activePath: string | null = null;
   let restoredLastFile = false;
 
-  router.all("/", (_req, ctx) => {
-    return editorView(ctx, { title: "Writasaurus" });
+  router.all("/", async (_req, ctx) => {
+    return editorView(ctx, { title: "Writasaurus", isDesktop: await ctx.isDesktop() });
   });
 
   router.get("/api/editor/status", async (_req, ctx) => {
-    const desktop = await checkIsDesktop();
+    const desktop = await ctx.isDesktop();
+
+    if (desktop && activePath && !isEpubFilename(activePath)) {
+      activePath = null;
+      await clearLastFilePath();
+    }
 
     if (desktop && !activePath && !restoredLastFile) {
       restoredLastFile = true;
       const lastPath = await loadLastFilePath();
-      if (lastPath) {
+      if (lastPath && isEpubFilename(lastPath)) {
         activePath = lastPath;
+      } else if (lastPath) {
+        await clearLastFilePath();
       }
     }
 
     if (desktop && activePath) {
       try {
-        const content = await Deno.readTextFile(activePath);
+        const bytes = await Deno.readFile(activePath);
+        const manuscript = await parseEpub(bytes, basename(activePath));
         return ctx.json({
           isDesktop: true,
           activeFile: basename(activePath),
           activePath,
-          content,
+          manuscript,
         });
       } catch (error) {
         console.warn("Could not read the active file.", error);
@@ -53,15 +63,27 @@ export const editorRoutes = (router: Router): Router => {
 
   router.post("/api/editor/save", async (req, ctx) => {
     const payload = await req.json().catch(() => null);
-    if (!payload || typeof payload.content !== "string") {
+    if (!payload || (!payload.manuscript && typeof payload.content !== "string")) {
+      return new Response("Invalid manuscript content", { status: 400 });
+    }
+
+    let manuscript: Manuscript;
+    if (payload.manuscript && Array.isArray(payload.manuscript.chapters)) {
+      manuscript = payload.manuscript;
+    } else if (typeof payload.content === "string") {
+      manuscript = parseManuscript(payload.content, payload.filename || "manuscript.epub");
+    } else {
       return new Response("Invalid manuscript content", { status: 400 });
     }
 
     if (payload.saveAs || !activePath) {
-      const suggested = typeof payload.filename === "string" && payload.filename.trim()
-        ? basename(payload.filename)
-        : "manuscript.md";
-      const chosen = await chooseFile("save", suggested);
+      const suggested = epubFilename({
+        ...manuscript,
+        filename: typeof payload.filename === "string" && payload.filename.trim()
+          ? basename(payload.filename)
+          : manuscript.filename,
+      });
+      const chosen = await chooseFile("save", suggested, "EPUB eBook", ["*.epub"]);
       if (!chosen) {
         return new Response(null, { status: 204 });
       }
@@ -69,7 +91,8 @@ export const editorRoutes = (router: Router): Router => {
       await saveLastFilePath(activePath);
     }
 
-    await Deno.writeTextFile(activePath, payload.content);
+    const epubBytes = await generateEpub(manuscript);
+    await Deno.writeFile(activePath, epubBytes);
     return ctx.json({
       ok: true,
       name: basename(activePath),
@@ -77,20 +100,47 @@ export const editorRoutes = (router: Router): Router => {
     });
   });
 
+  router.post("/api/editor/save-epub", async (req, ctx) => {
+    const payload = await req.json().catch(() => null);
+    if (!payload || !payload.manuscript || !Array.isArray(payload.manuscript.chapters)) {
+      return new Response("Invalid manuscript data", { status: 400 });
+    }
+
+    const suggested = epubFilename({
+      ...payload.manuscript,
+      filename: typeof payload.filename === "string" && payload.filename.trim()
+        ? basename(payload.filename)
+        : payload.manuscript.filename,
+    });
+    const chosen = await chooseFile("save", suggested, "EPUB eBook", ["*.epub"]);
+    if (!chosen) {
+      return new Response(null, { status: 204 });
+    }
+
+    const epubBytes = await generateEpub(payload.manuscript);
+    await Deno.writeFile(chosen, epubBytes);
+    return ctx.json({
+      ok: true,
+      name: basename(chosen),
+      path: chosen,
+    });
+  });
+
   router.post("/api/editor/open", async (_req, ctx) => {
-    const chosen = await chooseFile("open");
+    const chosen = await chooseFile("open", "manuscript.epub", "EPUB eBook", ["*.epub"]);
     if (!chosen) {
       return new Response(null, { status: 204 });
     }
     try {
-      const content = await Deno.readTextFile(chosen);
       activePath = chosen;
       await saveLastFilePath(activePath);
+      const bytes = await Deno.readFile(chosen);
+      const manuscript = await parseEpub(bytes, basename(chosen));
       return ctx.json({
         ok: true,
         name: basename(activePath),
         path: activePath,
-        content,
+        manuscript,
       });
     } catch (error) {
       console.error("Failed to read manuscript:", error);
@@ -106,11 +156,8 @@ export const editorRoutes = (router: Router): Router => {
   });
 
   router.post("/api/editor/exit", async (_req, ctx) => {
-    const desktop = await checkIsDesktop();
-    // Do not call Deno.exit when running inside tests, or the test runner will fail with an uncaught exit
-    const isTesting = "test" in Deno && typeof Deno.test === "function";
-    if (desktop && !isTesting) {
-      setTimeout(() => Deno.exit(0), 50);
+    if (await ctx.isDesktop() && options.onExit) {
+      setTimeout(options.onExit, 50);
     }
     return ctx.json({ ok: true });
   });

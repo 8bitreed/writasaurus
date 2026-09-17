@@ -20,7 +20,8 @@ This is a Deno 2 project; use Deno tasks and JSR imports rather than npm tooling
 `deno task check` or any test that imports `src/app.ts`.
 
 Only run tests after making changes; never run tests preemptively before changes have been made.
-Always run tests using the `deno task test` command only. Browser tests are included as part of `deno task test` and should run after changes.
+Always run tests using the `deno task test` command only. Browser tests are included as part of
+`deno task test` and should run after changes.
 
 When granting permissions, specify the minimal `--allow-*` flags needed (e.g. `--allow-read=...`)
 rather than defaulting to `-A`. Use `deno <subcommand> --help` to verify flags and

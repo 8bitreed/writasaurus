@@ -4,6 +4,7 @@ import { baseLayout } from "../../views/layouts/base-layout.ts";
 
 type Props = {
   title: string;
+  isDesktop: boolean;
 };
 
 export const editorView = createView((ctx, props: Props) => {
@@ -13,6 +14,11 @@ export const editorView = createView((ctx, props: Props) => {
     scripts: html`
       <link rel="stylesheet" href="${ctx.asset("features/editor/editor.client.css")}">
       <script type="module" src="${ctx.asset("features/editor/editor.client.ts")}"></script>
+      ${props.isDesktop
+        ? html`<script type="module" src="${
+          ctx.asset("features/editor/client/writing-assistance.client.ts")
+        }"></script>`
+        : ""}
     `,
     content: html`<editor-app></editor-app>`,
   });

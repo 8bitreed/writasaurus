@@ -5,8 +5,8 @@ import { aboutRoutes } from "../features/about/about.routes.ts";
 import { welcomeRoutes } from "../features/welcome/welcome.routes.ts";
 import { settingsRoutes } from "../features/settings/settings.routes.ts";
 
-export const Routes = (router: Router): Router => {
-  editorRoutes(router);
+export const Routes = (router: Router, options: { onExit?: () => void } = {}): Router => {
+  editorRoutes(router, options);
   aboutRoutes(router);
   welcomeRoutes(router);
   settingsRoutes(router);

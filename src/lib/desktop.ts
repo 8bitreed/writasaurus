@@ -6,7 +6,9 @@ export function dialogCommand(): string {
 
 export async function chooseFile(
   action: "open" | "save",
-  suggestedName = "manuscript.md",
+  suggestedName = "manuscript.epub",
+  filterName = "EPUB eBook",
+  filterExtensions = ["*.epub"],
 ): Promise<string | null> {
   const command = dialogCommand();
   const perm = await Deno.permissions.query({ name: "run", command });
@@ -14,10 +16,11 @@ export async function chooseFile(
 
   let args: string[];
   if (Deno.build.os === "linux") {
+    const filter = `${filterName} | ${filterExtensions.join(" ")}`;
     args = [
       "--file-selection",
       `--title=${action === "open" ? "Open" : "Save"} Manuscript`,
-      "--file-filter=Markdown files | *.md *.markdown *.txt",
+      `--file-filter=${filter}`,
       ...(action === "save"
         ? ["--save", "--confirm-overwrite", `--filename=${suggestedName}`]
         : []),
@@ -31,11 +34,12 @@ export async function chooseFile(
     args = ["-e", script];
   } else {
     const dialog = action === "open" ? "OpenFileDialog" : "SaveFileDialog";
+    const winFilter = `${filterName} (${filterExtensions.join(";")})|${filterExtensions.join(";")}`;
     args = [
       "-NoProfile",
       "-Command",
       `Add-Type -AssemblyName System.Windows.Forms; $d=New-Object System.Windows.Forms.${dialog}; ` +
-      `$d.Filter='Markdown (*.md;*.markdown;*.txt)|*.md;*.markdown;*.txt'; ` +
+      `$d.Filter='${winFilter}'; ` +
       `$d.FileName='${suggestedName.replaceAll("'", "")}'; ` +
       `if($d.ShowDialog() -eq 'OK'){[Console]::Write($d.FileName)}`,
     ];
@@ -56,12 +60,7 @@ export async function chooseFile(
 
 export async function checkIsDesktop(): Promise<boolean> {
   try {
-    if (Deno.env.get("DENO_SERVE_ADDRESS") || Deno.env.get("DENO_DESKTOP")) {
-      return true;
-    }
-    const runPerm = await Deno.permissions.query({ name: "run", command: dialogCommand() });
-    const writePerm = await Deno.permissions.query({ name: "write" });
-    return runPerm.state === "granted" && writePerm.state === "granted";
+    return Boolean(Deno.env.get("DENO_SERVE_ADDRESS") || Deno.env.get("DENO_DESKTOP"));
   } catch {
     return false;
   }

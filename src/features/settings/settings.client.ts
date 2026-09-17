@@ -1,15 +1,23 @@
 import {
   applyFontPreference,
   type FontOption,
+  getDailyWordGoalPreference,
   getFontPreference,
   getWordsPerPagePreference,
+  getWritingAssistancePreference,
+  saveDailyWordGoalPreference,
   saveFontPreference,
   saveWordsPerPagePreference,
+  saveWritingAssistancePreference,
 } from "../../lib/settings.ts";
 import { registerReturnToEditorShortcut } from "../../lib/shortcuts.ts";
 
 const fontSelect = document.querySelector<HTMLSelectElement>("#font-select");
 const wordsPerPageInput = document.querySelector<HTMLInputElement>("#words-per-page-input");
+const dailyWordGoalInput = document.querySelector<HTMLInputElement>("#daily-word-goal-input");
+const writingAssistanceInput = document.querySelector<HTMLInputElement>(
+  "#writing-assistance-input",
+);
 const status = document.querySelector<HTMLElement>("#settings-status");
 
 const currentFont = getFontPreference();
@@ -56,6 +64,35 @@ if (wordsPerPageInput) {
     } else {
       wordsPerPageInput.value = String(getWordsPerPagePreference());
     }
+  });
+}
+
+if (dailyWordGoalInput) {
+  dailyWordGoalInput.value = String(getDailyWordGoalPreference());
+
+  dailyWordGoalInput.addEventListener("input", () => {
+    const value = parseInt(dailyWordGoalInput.value, 10);
+    if (Number.isFinite(value) && value > 0) {
+      saveDailyWordGoalPreference(value);
+    }
+  });
+
+  dailyWordGoalInput.addEventListener("change", () => {
+    const value = parseInt(dailyWordGoalInput.value, 10);
+    if (Number.isFinite(value) && value > 0) {
+      saveDailyWordGoalPreference(value);
+      showStatus("Daily writing goal saved.");
+    } else {
+      dailyWordGoalInput.value = String(getDailyWordGoalPreference());
+    }
+  });
+}
+
+if (writingAssistanceInput) {
+  writingAssistanceInput.checked = getWritingAssistancePreference();
+  writingAssistanceInput.addEventListener("change", () => {
+    saveWritingAssistancePreference(writingAssistanceInput.checked);
+    showStatus(`Writing assistance ${writingAssistanceInput.checked ? "enabled" : "disabled"}.`);
   });
 }
 

@@ -1,15 +1,23 @@
 import type { WritableFileHandle } from "./types.ts";
-import { chapter, parseManuscript } from "./data.ts";
+import { chapter } from "./data.ts";
 import { storeHandle } from "./storage.ts";
 import { editorStore, state } from "./state.ts";
+import { isEpubFilename, parseEpub } from "../../../lib/epub.ts";
+
+const CHAPTER_NUMBER_PATTERN = /\b(chapter\s+)\d+\b/i;
 
 export async function loadFile(
   file: File,
   handle: WritableFileHandle | null = null,
   writable = false,
 ): Promise<void> {
+  if (!isEpubFilename(file.name)) {
+    throw new Error("Only EPUB manuscripts can be opened.");
+  }
+  const manuscript = await parseEpub(new Uint8Array(await file.arrayBuffer()), file.name);
+
   editorStore.set({
-    manuscript: parseManuscript(await file.text(), file.name),
+    manuscript,
     activeChapter: 0,
     fileHandle: handle,
     canWrite: writable,
@@ -49,6 +57,32 @@ export function deleteChapter(index: number): void {
 export function selectChapter(index: number): void {
   if (index === state.activeChapter) return;
   editorStore.set({ activeChapter: index });
+}
+
+export function reorderChapter(fromIndex: number, toIndex: number): void {
+  editorStore.update((draft) => {
+    const chapters = draft.manuscript.chapters;
+    if (fromIndex === toIndex || fromIndex < 0 || fromIndex >= chapters.length) return;
+    if (toIndex < 0 || toIndex >= chapters.length) return;
+
+    const [chapter] = chapters.splice(fromIndex, 1);
+    chapters.splice(toIndex, 0, chapter);
+
+    for (const [index, item] of chapters.entries()) {
+      item.title = item.title.replace(CHAPTER_NUMBER_PATTERN, `$1${index + 1}`);
+    }
+
+    // Adjust active chapter index if it was moved
+    if (draft.activeChapter === fromIndex) {
+      draft.activeChapter = toIndex;
+    } else if (fromIndex < draft.activeChapter && toIndex >= draft.activeChapter) {
+      draft.activeChapter--;
+    } else if (fromIndex > draft.activeChapter && toIndex <= draft.activeChapter) {
+      draft.activeChapter++;
+    }
+
+    draft.hasUnsavedChanges = true;
+  });
 }
 
 export function renameChapter(title: string): void {

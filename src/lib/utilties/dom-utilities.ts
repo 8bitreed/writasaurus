@@ -2,6 +2,14 @@
  * Escapes HTML special characters in a string to prevent XSS attacks.
  */
 export function escapeHtml(value: string): string {
+  if (typeof document === "undefined") {
+    return value
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
   const node = document.createElement("div");
   node.textContent = value;
   return node.innerHTML;
@@ -11,6 +19,9 @@ export function escapeHtml(value: string): string {
  * Converts HTML content to plain text by stripping out all HTML tags.
  */
 export function textFromHtml(html: string): string {
+  if (typeof document === "undefined") {
+    return html.replace(/<[^>]*>/g, "");
+  }
   const node = document.createElement("div");
   node.innerHTML = html;
   return node.textContent ?? "";

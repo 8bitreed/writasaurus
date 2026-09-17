@@ -8,7 +8,7 @@ import type { Chapter, Manuscript } from "./types.ts";
 
 export function blankManuscript(title = "Untitled Manuscript"): Manuscript {
   return {
-    filename: `${slug(title) || "manuscript"}.md`,
+    filename: `${slug(title) || "manuscript"}.epub`,
     frontmatter: {
       title,
       author: "",

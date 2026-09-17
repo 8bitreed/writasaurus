@@ -42,7 +42,8 @@ export const editorTopbar = webComponent("editor-topbar")
     const saveStatus = state.hasUnsavedChanges ? "unsaved" : "saved";
     const saveMessage = state.saveMessage ||
       (state.hasUnsavedChanges ? "Unsaved changes" : `Saved to ${filename}`);
-    const emitAction = (action: "save" | "quit") => () => element.emit("editoraction", { action });
+    const emitAction = (action: "new" | "open" | "save" | "saveAsEpub" | "quit") => () =>
+      element.emit("editoraction", { action });
     const updateTitle = (event: Event) => {
       renameManuscript((event.currentTarget as HTMLInputElement).value);
     };
@@ -70,10 +71,25 @@ export const editorTopbar = webComponent("editor-topbar")
           </button>
         </div>
         <nav id="app-menu" class="app-menu" ?hidden=${!menuOpen} aria-label="Application menu">
-          <button type="button" class="menu-item primary" @click=${emitAction("save")}>
+          <button type="button" class="menu-item" @click=${emitAction("save")}>
             <span>Save</span><kbd>Ctrl+S</kbd>
           </button>
-          <a href="/open" class="menu-item">Open</a>
+          <button type="button" class="menu-item" id="menu-save-epub" @click=${emitAction(
+            "saveAsEpub",
+          )}>
+            <span>Save As</span>
+          </button>
+          <div class="menu-divider"></div>
+          <button type="button" class="menu-item" id="menu-new-manuscript" @click=${emitAction(
+            "new",
+          )}>
+            New Manuscript
+          </button>
+          <button type="button" class="menu-item" id="menu-open-manuscript" @click=${emitAction(
+            "open",
+          )}>
+            Open Manuscript
+          </button>
           <div class="menu-divider"></div>
           <a href="/settings" class="menu-item">Settings</a>
           <a href="/about" class="menu-item">About</a>

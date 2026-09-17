@@ -78,6 +78,23 @@ function nodeToMarkdown(node: Node): string {
  * It creates a temporary DOM element to parse the HTML and then uses `nodeToMarkdown` to convert it.
  */
 export function htmlToMarkdown(html: string): string {
+  if (typeof document === "undefined") {
+    return html
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<h1[^>]*>(.*?)<\/h1>/gi, "# $1\n\n")
+      .replace(/<h2[^>]*>(.*?)<\/h2>/gi, "## $1\n\n")
+      .replace(/<h3[^>]*>(.*?)<\/h3>/gi, "### $1\n\n")
+      .replace(/<blockquote[^>]*>(.*?)<\/blockquote>/gi, "> $1\n\n")
+      .replace(/<li[^>]*>(.*?)<\/li>/gi, "- $1\n")
+      .replace(/<p[^>]*>(.*?)<\/p>/gi, "$1\n\n")
+      .replace(/<strong[^>]*>(.*?)<\/strong>/gi, "**$1**")
+      .replace(/<b[^>]*>(.*?)<\/b>/gi, "**$1**")
+      .replace(/<em[^>]*>(.*?)<\/em>/gi, "*$1*")
+      .replace(/<i[^>]*>(.*?)<\/i>/gi, "*$1*")
+      .replace(/<[^>]*>/g, "")
+      .replace(/^[\r\n]+/, "")
+      .replace(/[\r\n]+$/, "");
+  }
   const node = document.createElement("div");
   node.innerHTML = html;
   return [...node.childNodes]

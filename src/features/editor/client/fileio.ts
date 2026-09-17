@@ -1,18 +1,17 @@
 import type { Manuscript, WritableFileHandle } from "./types.ts";
-import { serialize } from "./data.ts";
 import { storeHandle } from "./storage.ts";
 import { editorStore, markSaved, state } from "./state.ts";
+import { epubFilename, generateEpub } from "../../../lib/epub.ts";
 
 const filePicker = globalThis as unknown as {
   showSaveFilePicker?: (options: object) => Promise<WritableFileHandle>;
   showOpenFilePicker?: (options: object) => Promise<WritableFileHandle[]>;
 };
 
-const MARKDOWN_TYPES = [{
-  description: "Markdown",
+export const EPUB_TYPES = [{
+  description: "EPUB eBook",
   accept: {
-    "text/markdown": [".md", ".markdown"],
-    "text/plain": [".txt"],
+    "application/epub+zip": [".epub"],
   },
 }];
 
@@ -29,33 +28,42 @@ export async function writeFile(
   manuscript: Manuscript,
 ): Promise<void> {
   const writable = await handle.createWritable();
-  await writable.write(serialize(manuscript));
+  const bytes = await generateEpub(manuscript);
+  await writable.write(bytes);
   await writable.close();
   markSaved();
 }
 
-export function download(manuscript: Manuscript): void {
-  const url = URL.createObjectURL(new Blob([serialize(manuscript)], { type: "text/markdown" }));
+export async function download(manuscript: Manuscript): Promise<void> {
+  const bytes = await generateEpub(manuscript);
+  const filename = epubFilename(manuscript);
+  const url = URL.createObjectURL(
+    new Blob([bytes as unknown as BlobPart], { type: "application/epub+zip" }),
+  );
   const link = document.createElement("a");
   link.href = url;
-  link.download = manuscript.filename;
+  link.download = filename;
   link.hidden = true;
   document.body.append(link);
   link.click();
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1_000);
-  markSaved(`Exported to ${manuscript.filename}`);
+  markSaved(`Saved to ${filename}`);
 }
 
+export const downloadEpub = download;
+
 export async function saveToDisk(saveAs = false): Promise<void> {
+  const filename = epubFilename(state.manuscript);
+
   if (state.isDesktop) {
     try {
       const response = await fetch("/api/editor/save", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          content: serialize(state.manuscript),
-          filename: state.manuscript.filename,
+          manuscript: state.manuscript,
+          filename,
           saveAs: saveAs || !state.desktopFileLoaded,
         }),
       });
@@ -72,10 +80,11 @@ export async function saveToDisk(saveAs = false): Promise<void> {
     } catch (error) {
       console.error("Desktop save failed:", error);
       editorStore.set({ saveMessage: "Save failed" });
+      return;
     }
   }
 
-  if (state.fileHandle) {
+  if (state.fileHandle && !saveAs) {
     try {
       const canWrite = await hasWritePermission(state.fileHandle, true);
       editorStore.set({ canWrite });
@@ -91,14 +100,14 @@ export async function saveToDisk(saveAs = false): Promise<void> {
   }
 
   if (!filePicker.showSaveFilePicker) {
-    download(state.manuscript);
+    await download(state.manuscript);
     return;
   }
 
   try {
     const handle = await filePicker.showSaveFilePicker({
-      suggestedName: state.manuscript.filename,
-      types: MARKDOWN_TYPES,
+      suggestedName: filename,
+      types: EPUB_TYPES,
     });
     editorStore.update((draft) => {
       draft.fileHandle = handle;
@@ -110,8 +119,12 @@ export async function saveToDisk(saveAs = false): Promise<void> {
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") return;
     console.warn("Native save picker failed; using a download instead.", error);
-    download(state.manuscript);
+    await download(state.manuscript);
   }
+}
+
+export async function saveEpubToDisk(): Promise<void> {
+  await saveToDisk(true);
 }
 
 export async function openFile(
@@ -125,7 +138,19 @@ export async function openFile(
       if (!response.ok) throw new Error(`File open failed: ${response.status}`);
       const result = await response.json();
       editorStore.set({ desktopFileLoaded: true });
-      await onLoaded(new File([result.content], result.name), null, false);
+      if (result.manuscript) {
+        editorStore.set({
+          manuscript: result.manuscript,
+          activeChapter: 0,
+          fileHandle: null,
+          canWrite: false,
+          hasUnsavedChanges: false,
+          desktopFileLoaded: true,
+          saveMessage: "",
+        });
+        await onLoaded(new File([], result.name), null, false);
+        return;
+      }
       return;
     } catch (error) {
       console.error("Desktop open failed:", error);
@@ -141,7 +166,7 @@ export async function openFile(
 
   try {
     const handles = await filePicker.showOpenFilePicker({
-      types: MARKDOWN_TYPES,
+      types: EPUB_TYPES,
       multiple: false,
     });
     const handle = handles[0];
@@ -151,7 +176,7 @@ export async function openFile(
     }
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") return;
-    console.warn("Native open picker failed; using the upload picker instead.", error);
+    console.warn("Native open picker failed; falling back to input.", error);
     fileInput.click();
   }
 }

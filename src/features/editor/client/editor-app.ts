@@ -1,15 +1,16 @@
 import { html, webComponent } from "../../../framework/web-components/index.ts";
 import { applyFontPreference, getFontPreference } from "../../../lib/settings.ts";
+import { blankManuscript } from "./data.ts";
 import { loadFile } from "./actions.ts";
-import { parseManuscript } from "./data.ts";
 import { executeEditorCommand } from "./editor-commands.ts";
 import { editorEvents } from "./editor-events.ts";
 import { type EditorSidebar, editorSidebar } from "./editor-sidebar.ts";
 import { editorStatusbar } from "./editor-statusbar.ts";
 import { type EditorTopbar, editorTopbar } from "./editor-topbar.ts";
 import { type EditorWritingArea, editorWritingArea } from "./editor-writing-area.ts";
-import { hasWritePermission, saveToDisk } from "./fileio.ts";
+import { hasWritePermission, openFile, saveEpubToDisk, saveToDisk } from "./fileio.ts";
 import { editorStore, markChanged, state, syncChapter } from "./state.ts";
+import { isEpubFilename } from "../../../lib/epub.ts";
 import {
   restoreHandle,
   restoreLocal,
@@ -21,7 +22,7 @@ import {
 import "./editor-canvas.ts";
 import "./editor-toolbar.ts";
 
-type EditorAction = "save" | "quit";
+type EditorAction = "new" | "open" | "save" | "saveAsEpub" | "quit";
 const cleanups = new WeakMap<HTMLElement, () => void>();
 
 function ui(root: HTMLElement): {
@@ -44,6 +45,45 @@ async function save(app: HTMLElement): Promise<void> {
   await saveToDisk();
 }
 
+async function saveAsEpub(app: HTMLElement): Promise<void> {
+  const editor = ui(app).writingArea.editor;
+  if (editor) syncChapter(editor);
+  await saveEpubToDisk();
+}
+
+async function startNewManuscript(): Promise<void> {
+  editorStore.set({
+    manuscript: blankManuscript(),
+    activeChapter: 0,
+    fileHandle: null,
+    canWrite: false,
+    desktopFileLoaded: false,
+    hasUnsavedChanges: true,
+    saveMessage: "",
+  });
+  await storeHandle(null);
+
+  if (!state.isDesktop) return;
+  try {
+    const response = await fetch("/api/editor/close", {
+      method: "POST",
+      headers: { origin: location.origin },
+    });
+    if (!response.ok) throw new Error(`Could not close active manuscript: ${response.status}`);
+  } catch (error) {
+    console.warn("Could not clear the previously active desktop manuscript.", error);
+  }
+}
+
+async function openManuscript(app: HTMLElement): Promise<void> {
+  const input = app.querySelector<HTMLInputElement>("#editor-file-input");
+  if (!input) throw new Error("Editor file input did not render.");
+  await openFile(input, async (file, handle, writable) => {
+    // The desktop open route has already loaded its returned manuscript into the editor state.
+    if (!state.isDesktop) await loadFile(file, handle, writable);
+  });
+}
+
 async function quit(app: HTMLElement): Promise<void> {
   if (
     state.hasUnsavedChanges &&
@@ -63,14 +103,26 @@ async function quit(app: HTMLElement): Promise<void> {
   }
 }
 
-async function restoreFileHandle(): Promise<void> {
+async function restoreFileHandle(): Promise<boolean> {
   const fileHandle = await restoreHandle();
-  if (!fileHandle) return;
+  if (!fileHandle) return false;
+  if (!isEpubFilename(fileHandle.name)) {
+    await storeHandle(null);
+    return false;
+  }
+
   try {
-    editorStore.set({ fileHandle, canWrite: await hasWritePermission(fileHandle, false) });
+    const file = await fileHandle.getFile();
+    if (!isEpubFilename(file.name)) {
+      await storeHandle(null);
+      return false;
+    }
+    await loadFile(file, fileHandle, await hasWritePermission(fileHandle, false));
+    return true;
   } catch {
     editorStore.set({ fileHandle: null, canWrite: false });
     await storeHandle(null);
+    return false;
   }
 }
 
@@ -83,12 +135,12 @@ async function restoreDesktopFile(): Promise<boolean> {
     editorStore.set({ isDesktop: status.isDesktop === true });
     if (
       !state.isDesktop || typeof status.activeFile !== "string" ||
-      typeof status.content !== "string"
+      !status.manuscript
     ) {
       return false;
     }
     editorStore.set({
-      manuscript: parseManuscript(status.content, status.activeFile),
+      manuscript: status.manuscript,
       activeChapter: 0,
       fileHandle: null,
       canWrite: false,
@@ -104,7 +156,7 @@ async function restoreDesktopFile(): Promise<boolean> {
 
 function restoreSession(): boolean {
   const saved = restoreLocal();
-  if (!saved) return false;
+  if (!saved || !isEpubFilename(saved.manuscript.filename)) return false;
   editorStore.set({
     manuscript: saved.manuscript,
     activeChapter: saved.activeChapter,
@@ -114,8 +166,9 @@ function restoreSession(): boolean {
 }
 
 async function initialize(app: HTMLElement): Promise<void> {
-  await restoreFileHandle();
-  const opened = await restoreDesktopFile() || restoreSession();
+  const desktopOpened = await restoreDesktopFile();
+  const handleOpened = desktopOpened ? false : await restoreFileHandle();
+  const opened = desktopOpened || handleOpened || restoreSession();
 
   applyFontPreference(getFontPreference());
   if (!opened && !shouldSkipWelcome()) {
@@ -139,14 +192,24 @@ webComponent("editor-app")
         </div>
       </main>
       ${editorStatusbar()}
+      <input id="editor-file-input" type="file" accept=".epub,application/epub+zip" hidden>
     `
   )
   .connectedCallback((app) => {
     const onAction = (event: Event) => {
       const { action } = (event as CustomEvent<{ action: EditorAction }>).detail;
       ui(app).topbar.closeMenu();
-      if (action === "save") void save(app);
+      if (action === "new") void startNewManuscript();
+      else if (action === "open") void openManuscript(app);
+      else if (action === "save") void save(app);
+      else if (action === "saveAsEpub") void saveAsEpub(app);
       else void quit(app);
+    };
+    const onFileInputChange = (event: Event) => {
+      const input = event.currentTarget as HTMLInputElement;
+      const file = input.files?.[0];
+      if (file) void loadFile(file);
+      input.value = "";
     };
     const onDocumentClick = (event: MouseEvent) => {
       const { topbar } = ui(app);
@@ -178,7 +241,7 @@ webComponent("editor-app")
     const onDrop = (event: DragEvent) => {
       event.preventDefault();
       const file = event.dataTransfer?.files[0];
-      if (file && /\.(?:md|markdown|txt)$/i.test(file.name)) void loadFile(file);
+      if (file && isEpubFilename(file.name)) void loadFile(file);
     };
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
       if (!state.hasUnsavedChanges) return;
@@ -199,6 +262,10 @@ webComponent("editor-app")
     });
 
     app.addEventListener("editoraction", onAction);
+    app.querySelector<HTMLInputElement>("#editor-file-input")?.addEventListener(
+      "change",
+      onFileInputChange,
+    );
     document.addEventListener("click", onDocumentClick);
     globalThis.addEventListener("keydown", onKeyDown);
     globalThis.addEventListener("dragover", onDragOver);
@@ -209,6 +276,10 @@ webComponent("editor-app")
       unsubscribeSidebar();
       unsubscribeSession();
       app.removeEventListener("editoraction", onAction);
+      app.querySelector<HTMLInputElement>("#editor-file-input")?.removeEventListener(
+        "change",
+        onFileInputChange,
+      );
       document.removeEventListener("click", onDocumentClick);
       globalThis.removeEventListener("keydown", onKeyDown);
       globalThis.removeEventListener("dragover", onDragOver);

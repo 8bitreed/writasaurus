@@ -2,7 +2,11 @@ import { html } from "../../framework/html/html.ts";
 import { createView } from "../../framework/html/template.ts";
 import { baseLayout } from "../../views/layouts/base-layout.ts";
 
-export const settingsView = createView((ctx) => {
+type Props = {
+  isDesktop: boolean;
+};
+
+export const settingsView = createView((ctx, props: Props) => {
   return baseLayout({
     title: "Settings — Writasaurus",
     bodyClass: "settings-mode",
@@ -80,6 +84,42 @@ export const settingsView = createView((ctx) => {
                 value="300"
               >
             </div>
+
+            <div class="settings-group">
+              <label for="daily-word-goal-input" class="settings-label">
+                <strong>Daily Writing Goal</strong>
+                <span class="settings-help">
+                  Number of words to aim for each day (default: 1,500).
+                </span>
+              </label>
+
+              <input
+                type="number"
+                id="daily-word-goal-input"
+                class="settings-input"
+                min="1"
+                max="100000"
+                step="100"
+                value="1500"
+              >
+            </div>
+
+            ${props.isDesktop
+              ? html`
+                <div class="settings-group">
+                  <label for="writing-assistance-input" class="settings-label">
+                    <strong>Writing Assistance</strong>
+                    <span class="settings-help">
+                      Use the bundled offline US-English spelling and grammar checker.
+                    </span>
+                  </label>
+                  <label class="settings-checkbox">
+                    <input type="checkbox" id="writing-assistance-input" checked>
+                    Enable writing assistance
+                  </label>
+                </div>
+              `
+              : ""}
 
             <div class="settings-status" id="settings-status" aria-live="polite"></div>
 

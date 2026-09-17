@@ -16,7 +16,10 @@ export interface WritableFileHandle {
   kind: "file";
   name: string;
   getFile(): Promise<File>;
-  createWritable(): Promise<{ write(data: string): Promise<void>; close(): Promise<void> }>;
+  createWritable(): Promise<{
+    write(data: string | Uint8Array | Blob): Promise<void>;
+    close(): Promise<void>;
+  }>;
   queryPermission(options: { mode: string }): Promise<string>;
   requestPermission(options: { mode: string }): Promise<string>;
 }

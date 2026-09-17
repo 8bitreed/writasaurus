@@ -3,6 +3,7 @@ import { openFile } from "../editor/client/fileio.ts";
 import { state } from "../editor/client/state.ts";
 import { saveLocal, setSkipWelcome, storeHandle } from "../editor/client/storage.ts";
 import { registerReturnToEditorShortcut } from "../../lib/shortcuts.ts";
+import { parseEpub } from "../../lib/epub.ts";
 
 try {
   const statusRes = await fetch("/api/editor/status");
@@ -23,13 +24,18 @@ const openButton = document.querySelector<HTMLButtonElement>("#welcome-open");
 const newButton = document.querySelector<HTMLButtonElement>("#welcome-new");
 const sampleButton = document.querySelector<HTMLButtonElement>("#welcome-sample");
 
+async function readManuscriptFile(file: File) {
+  return await parseEpub(new Uint8Array(await file.arrayBuffer()), file.name);
+}
+
 openButton?.addEventListener("click", () => {
   if (!fileInput) return;
   void openFile(fileInput, async (file, handle) => {
-    const text = await file.text();
-    const manuscript = parseManuscript(text, file.name);
-    saveLocal(manuscript, 0);
-    await storeHandle(handle);
+    if (file.size > 0) {
+      const manuscript = await readManuscriptFile(file);
+      saveLocal(manuscript, 0);
+      await storeHandle(handle);
+    }
     navigateToEditor();
   });
 });
@@ -37,8 +43,7 @@ openButton?.addEventListener("click", () => {
 fileInput?.addEventListener("change", async () => {
   const file = fileInput.files?.[0];
   if (file) {
-    const text = await file.text();
-    const manuscript = parseManuscript(text, file.name);
+    const manuscript = await readManuscriptFile(file);
     saveLocal(manuscript, 0);
     await storeHandle(null);
     navigateToEditor();
@@ -64,7 +69,7 @@ newButton?.addEventListener("click", async () => {
 });
 
 sampleButton?.addEventListener("click", async () => {
-  const manuscript = parseManuscript(SAMPLE_NOVEL, "the-chroniclers-compass.md");
+  const manuscript = parseManuscript(SAMPLE_NOVEL, "the-chroniclers-compass.epub");
   saveLocal(manuscript, 0);
   await storeHandle(null);
   await closeActiveDesktopFile();

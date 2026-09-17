@@ -12,6 +12,11 @@ export type App = ((req: Request, info?: Deno.ServeHandlerInfo) => Response | Pr
   request(url: string | URL, init?: RequestInit): Promise<Response>;
 };
 
+export interface AppOptions {
+  isDesktop?: () => Promise<boolean> | boolean;
+  onExit?: () => void;
+}
+
 /* CODE */
 
 /**
@@ -19,7 +24,7 @@ export type App = ((req: Request, info?: Deno.ServeHandlerInfo) => Response | Pr
  * Middleware is global, meaning it will be applied to all routes.
  * If you need to do an auth check or something similar, you can do it explicitly in the route handler itself.
  */
-export function createApp(): App {
+export function createApp(options: AppOptions = {}): App {
   const asset = loadAssets();
 
   const json = (data: Record<string, unknown>, status?: number) => {
@@ -35,11 +40,11 @@ export function createApp(): App {
 
   let router = createRouter({
     asset,
-    isDesktop: checkIsDesktop,
+    isDesktop: options.isDesktop ?? checkIsDesktop,
     json,
   }, globalMiddleware);
 
-  router = Routes(router);
+  router = Routes(router, { onExit: options.onExit });
 
   return router.init();
 }

@@ -19,12 +19,13 @@ export const welcomeView = createView((ctx) => {
         <main class="welcome-content">
           <section class="welcome-card stack">
             <h2>Open Manuscript</h2>
-            <p>Open a Markdown manuscript or begin with a blank document.</p>
+            <p>Open an EPUB manuscript or begin with a blank document.</p>
             <div class="welcome-actions">
               <button type="button" id="welcome-open" class="button primary">Browse Local File</button>
               <button type="button" id="welcome-new" class="button">Start New Manuscript</button>
               <button type="button" id="welcome-sample" class="button">Load Sample Novel</button>
-              <input id="welcome-file-input" type="file" accept=".md,.markdown,.txt" hidden>
+              <input id="welcome-file-input" type="file"
+                accept=".epub,application/epub+zip" hidden>
             </div>
             <div class="welcome-footer">
               <a href="/" class="return-link"

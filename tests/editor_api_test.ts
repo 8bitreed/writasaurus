@@ -78,8 +78,14 @@ Deno.test("editor-api: save returns 204 if no file chosen", async () => {
   assertEquals(res.status, 204);
 });
 
-Deno.test("editor-api: exit responds with ok", async () => {
-  const app = await createApp();
+Deno.test("editor-api: exit invokes the configured desktop shutdown callback", async () => {
+  let exitCalled = false;
+  const app = await createApp({
+    isDesktop: () => true,
+    onExit: () => {
+      exitCalled = true;
+    },
+  });
   const res = await app.request("/api/editor/exit", {
     method: "POST",
     headers: { origin: "http://localhost" },
@@ -87,6 +93,8 @@ Deno.test("editor-api: exit responds with ok", async () => {
   assertEquals(res.status, 200);
   const data = await res.json();
   assertEquals(data.ok, true);
+  await new Promise((resolve) => setTimeout(resolve, 60));
+  assertEquals(exitCalled, true);
 });
 
 Deno.test("editor-api: open returns 204 if no file chosen", async () => {
@@ -94,6 +102,48 @@ Deno.test("editor-api: open returns 204 if no file chosen", async () => {
   const res = await app.request("/api/editor/open", {
     method: "POST",
     headers: { origin: "http://localhost" },
+  });
+  assertEquals(res.status, 204);
+});
+
+Deno.test("editor-api: save-epub validates request payload", async () => {
+  const app = await createApp();
+  const invalidPayloads = [
+    null,
+    {},
+    { manuscript: "not-an-object" },
+    { manuscript: { chapters: "not-an-array" } },
+  ];
+
+  for (const payload of invalidPayloads) {
+    const res = await app.request("/api/editor/save-epub", {
+      method: "POST",
+      headers: {
+        origin: "http://localhost",
+        "content-type": "application/json",
+      },
+      body: payload ? JSON.stringify(payload) : "not-json",
+    });
+    assertEquals(res.status, 400);
+    assertEquals(await res.text(), "Invalid manuscript data");
+  }
+});
+
+Deno.test("editor-api: save-epub returns 204 if no file chosen", async () => {
+  const app = await createApp();
+  const res = await app.request("/api/editor/save-epub", {
+    method: "POST",
+    headers: {
+      origin: "http://localhost",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      manuscript: {
+        filename: "test.md",
+        frontmatter: { title: "Test Book" },
+        chapters: [{ id: "1", title: "Ch 1", content: "<p>Text</p>", wordCount: 1, charCount: 4 }],
+      },
+    }),
   });
   assertEquals(res.status, 204);
 });

@@ -14,11 +14,12 @@ webComponent("simple-counter")
   .defineState({ count: 0 })
   .defineMethod("increment", (element) => () => element.state.count++)
   .defineRender(
-    (element) => html`
-      <button type="button" @click=${element.increment}>
-        Count: ${element.state.count}
-      </button>
-    `,
+    (element) =>
+      html`
+        <button type="button" @click=${element.increment}>
+          Count: ${element.state.count}
+        </button>
+      `,
   )
   .create();
 ```
@@ -28,7 +29,8 @@ webComponent("simple-counter")
 ```
 
 You can also include the component from JavaScript templates by calling the value returned from
-`.create()` (it returns a render helper that gives you type inference for the custom element's attributes):
+`.create()` (it returns a render helper that gives you type inference for the custom element's
+attributes):
 
 ```ts
 const simpleCounter = webComponent("simple-counter")
@@ -79,10 +81,11 @@ webComponent("profile-card")
     }),
   )
   .defineRender(
-    (element) => html`
-      <p>${element.state.message ?? "No message"}</p>
-      <p>${element.state.tags.length} tags</p>
-    `,
+    (element) =>
+      html`
+        <p>${element.state.message ?? "No message"}</p>
+        <p>${element.state.tags.length} tags</p>
+      `,
   )
   .create();
 ```
@@ -104,10 +107,11 @@ webComponent("book-card")
     subtitle: null as string | null,
   })
   .defineRender(
-    (element) => html`
-      <h2>${element.observedAttribute.title}</h2>
-      <p>${element.observedAttribute.pageCount} pages</p>
-    `,
+    (element) =>
+      html`
+        <h2>${element.observedAttribute.title}</h2>
+        <p>${element.observedAttribute.pageCount} pages</p>
+      `,
   )
   .create();
 ```
@@ -136,9 +140,10 @@ webComponent("counter-button")
     return element.state.count;
   })
   .defineRender(
-    (element) => html`
-      <button @click=${() => element.add(1)}>${element.state.count}</button>
-    `,
+    (element) =>
+      html`
+        <button @click=${() => element.add(1)}>${element.state.count}</button>
+      `,
   )
   .create();
 ```
@@ -208,11 +213,7 @@ and triggers a re-render when any of them updates. It automatically unsubscribes
 when unmounted (`disconnectedCallback`), preventing memory leaks.
 
 ```ts
-import {
-  createStore,
-  html,
-  webComponent,
-} from "../framework/web-components/index.ts";
+import { createStore, html, webComponent } from "../framework/web-components/index.ts";
 
 export const appStore = createStore({
   theme: "dark",
@@ -222,8 +223,7 @@ export const appStore = createStore({
 webComponent("user-badge")
   .subscribe(appStore)
   .defineRender(
-    () =>
-      html`<div>User: ${appStore.state.user} (${appStore.state.theme})</div>`,
+    () => html`<div>User: ${appStore.state.user} (${appStore.state.theme})</div>`,
   )
   .create();
 ```

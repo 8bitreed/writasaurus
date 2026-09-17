@@ -66,6 +66,20 @@
   font-size: 0.85rem;
 }
 
+.settings-checkbox {
+  align-items: center;
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  gap: 0.5rem;
+}
+
+.settings-checkbox input {
+  accent-color: var(--accent);
+  block-size: 1rem;
+  inline-size: 1rem;
+}
+
 .settings-select,
 .settings-input {
   background: var(--surface-sunken);
