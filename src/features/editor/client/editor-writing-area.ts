@@ -1,5 +1,6 @@
 import { html, webComponent } from "../../../framework/web-components/index.ts";
 import { renameChapter } from "./actions.ts";
+import { normalizeEditorBlocks } from "./editor-normalize.ts";
 import { editorEvents } from "./editor-events.ts";
 import { activeChapter, editorStore, markChanged } from "./state.ts";
 
@@ -25,7 +26,10 @@ function mountChapter(element: HTMLElement): void {
   const title = element.querySelector<HTMLInputElement>("#chapter-title");
   const editor = element.querySelector<HTMLElement>("#editor");
   if (title) title.value = chapter.title;
-  if (editor) editor.innerHTML = chapter.content || "<p></p>";
+  if (editor) {
+    editor.innerHTML = chapter.content || "<p></p>";
+    normalizeEditorBlocks(editor);
+  }
 }
 
 export const editorWritingArea = webComponent("editor-writing-area")

@@ -77,11 +77,6 @@ export const editorSidebar = webComponent("editor-sidebar")
       editorEvents.emit("focusChapterTitle", undefined);
     };
 
-    // Re-setup drag and drop after render when chapters change
-    setTimeout(() => {
-      (element as unknown as EditorSidebar & { setupDragDrop(): void }).setupDragDrop();
-    }, 0);
-
     return html`
       <div class="sidebar-heading">
         <h2>Chapters</h2>

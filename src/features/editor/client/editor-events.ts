@@ -11,3 +11,9 @@ export interface EditorEvents {
 }
 
 export const editorEvents = createEventBus<EditorEvents>();
+
+export const TOGGLE_WRITING_ASSISTANCE_EVENT = "writasaurus:toggle-writing-assistance";
+
+export function toggleWritingAssistancePanel(): void {
+  globalThis.dispatchEvent(new Event(TOGGLE_WRITING_ASSISTANCE_EVENT));
+}

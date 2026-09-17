@@ -3,7 +3,7 @@ import { applyFontPreference, getFontPreference } from "../../../lib/settings.ts
 import { blankManuscript } from "./data.ts";
 import { loadFile } from "./actions.ts";
 import { executeEditorCommand } from "./editor-commands.ts";
-import { editorEvents } from "./editor-events.ts";
+import { editorEvents, toggleWritingAssistancePanel } from "./editor-events.ts";
 import { type EditorSidebar, editorSidebar } from "./editor-sidebar.ts";
 import { editorStatusbar } from "./editor-statusbar.ts";
 import { type EditorTopbar, editorTopbar } from "./editor-topbar.ts";
@@ -22,7 +22,7 @@ import {
 import "./editor-canvas.ts";
 import "./editor-toolbar.ts";
 
-type EditorAction = "new" | "open" | "save" | "saveAsEpub" | "quit";
+type EditorAction = "new" | "open" | "save" | "saveAsEpub" | "fullscreen" | "quit";
 const cleanups = new WeakMap<HTMLElement, () => void>();
 
 function ui(root: HTMLElement): {
@@ -100,6 +100,15 @@ async function quit(app: HTMLElement): Promise<void> {
     }
   } else {
     globalThis.close();
+  }
+}
+
+async function toggleFullscreen(): Promise<void> {
+  try {
+    if (document.fullscreenElement) await document.exitFullscreen();
+    else await document.documentElement.requestFullscreen();
+  } catch (error) {
+    console.error("Could not toggle fullscreen mode.", error);
   }
 }
 
@@ -203,6 +212,7 @@ webComponent("editor-app")
       else if (action === "open") void openManuscript(app);
       else if (action === "save") void save(app);
       else if (action === "saveAsEpub") void saveAsEpub(app);
+      else if (action === "fullscreen") void toggleFullscreen();
       else void quit(app);
     };
     const onFileInputChange = (event: Event) => {
@@ -221,6 +231,9 @@ webComponent("editor-app")
       if (modifier && key === "b") {
         event.preventDefault();
         ui(app).sidebar.toggle();
+      } else if (modifier && key === "n" && state.isDesktop) {
+        event.preventDefault();
+        toggleWritingAssistancePanel();
       } else if (modifier && key === "s") {
         event.preventDefault();
         void save(app);
@@ -230,6 +243,10 @@ webComponent("editor-app")
       } else if (modifier && event.shiftKey && key === "e") {
         event.preventDefault();
         ui(app).writingArea.focusEditor();
+      } else if (event.key === "F11" && state.isDesktop) {
+        event.preventDefault();
+        ui(app).topbar.closeMenu();
+        void toggleFullscreen();
       } else if (event.key === "Escape") {
         ui(app).topbar.closeMenu();
       } else if (modifier && key === "m") {

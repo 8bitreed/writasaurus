@@ -278,20 +278,128 @@ Deno.test("browser: status bar rotates chapter, manuscript, and daily writing st
 
 Deno.test("browser: Desktop writing assistance corrects a local spelling warning", async () => {
   await withEditorPage(async (page) => {
-    const panel = page.locator(".writing-assistance-panel");
-    await panel.waitFor({ state: "visible" });
-
+    const panel = page.locator(".writing-assistance-sidebar");
+    await panel.waitFor({ state: "attached" });
     await page.locator("#editor").fill("This is teh cat.");
-    await page.waitForFunction(
-      () => document.querySelector(".writing-assistance-panel")?.textContent?.includes("1 issue"),
-      undefined,
-      { timeout: 60_000 },
+    await page.waitForTimeout(750);
+    assert(
+      !await page.evaluate(() => CSS.highlights.has("writing-assistance-spelling")),
+      "Expected writing assistance to remain inactive while its panel is closed",
     );
 
-    await panel.locator("button").first().click();
+    await page.locator("editor-statusbar").getByRole("button", {
+      name: "Toggle writing assistance panel",
+    }).click();
+    await page.waitForFunction(() => {
+      const panel = document.querySelector(".writing-assistance-sidebar");
+      if (!panel || panel.classList.contains("collapsed")) return false;
+      const bounds = panel.getBoundingClientRect();
+      return bounds.left < innerWidth && bounds.right > 0;
+    });
+    try {
+      await page.waitForFunction(
+        () =>
+          document.querySelector(".writing-assistance-sidebar")?.textContent?.includes("1 issue"),
+        undefined,
+        { timeout: 60_000 },
+      );
+    } catch {
+      throw new Error(
+        `Expected writing assistance issue, got: ${(await panel.textContent())?.trim()}`,
+      );
+    }
+    assert(
+      await page.evaluate(() => CSS.highlights.has("writing-assistance-spelling")),
+      "Expected the spelling warning to be highlighted in the editor",
+    );
+
+    await page.keyboard.press("Control+n");
+    await page.waitForFunction(() =>
+      document.querySelector(".writing-assistance-sidebar")?.classList.contains("collapsed") ===
+        true
+    );
+    assert(
+      !await page.evaluate(() => CSS.highlights.has("writing-assistance-spelling")),
+      "Expected closing writing assistance to clear its highlights",
+    );
+    await page.keyboard.press("Control+n");
+    await page.waitForFunction(() =>
+      document.querySelector(".writing-assistance-sidebar")?.textContent?.includes("1 issue")
+    );
+
     await panel.getByRole("button", { name: "Replace with “the”" }).click();
     await page.waitForFunction(() =>
       document.querySelector("#editor")?.textContent === "This is the cat."
+    );
+
+    await page.locator("#editor").fill("They is here.");
+    await page.waitForFunction(
+      () =>
+        document.querySelector(".writing-assistance-sidebar")?.textContent?.includes(
+          "Make the verb agree with its subject.",
+        ) === true,
+    );
+    assert(
+      await page.evaluate(() => CSS.highlights.has("writing-assistance-grammar")),
+      "Expected the grammar warning to be highlighted in the editor",
+    );
+  }, true);
+});
+
+Deno.test("browser: writing assistance color codes issues and navigates to the active one", async () => {
+  await withEditorPage(async (page) => {
+    await page.locator(".writing-assistance-sidebar").waitFor({ state: "attached" });
+    await page.keyboard.press("Control+n");
+
+    // A long chapter keeps the reported issue off screen until the panel scrolls to it.
+    await page.locator("#editor").evaluate((element) => {
+      const filler = Array.from({ length: 60 }, () => "<p>All is well in this chapter.</p>");
+      element.innerHTML = `${filler.join("")}<p>This is teh cat.</p>`;
+      element.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+
+    const issue = page.locator(".writing-assistance-list li.spelling .writing-assistance-issue");
+    await issue.waitFor({ state: "visible", timeout: 60_000 });
+    assert(
+      (await page.locator(".writing-assistance-list li.spelling .writing-assistance-kind")
+        .textContent())?.trim() === "Spelling",
+      "Expected the issue to be labelled with its category",
+    );
+
+    const colors = await page.evaluate(() => {
+      const item = document.querySelector(".writing-assistance-list li.spelling")!;
+      return {
+        item: getComputedStyle(item).borderLeftColor,
+        kind: getComputedStyle(item.querySelector(".writing-assistance-kind")!).color,
+        danger: getComputedStyle(document.documentElement).getPropertyValue("--danger").trim(),
+      };
+    });
+    assert(
+      colors.item === colors.kind,
+      `Expected the spelling accent to match its label color, got ${colors.item} and ${colors.kind}`,
+    );
+    assert(colors.danger.length > 0, "Expected a danger color token to be defined");
+
+    assert(
+      !await page.evaluate(() => CSS.highlights.has("writing-assistance-active")),
+      "Expected no active highlight before an issue is selected",
+    );
+
+    await issue.click();
+    await page.waitForFunction(() => CSS.highlights.has("writing-assistance-active"));
+    await page.waitForFunction(() =>
+      document.querySelector(".writing-assistance-list li.spelling")?.classList.contains(
+        "active",
+      ) ===
+        true
+    );
+    assert(
+      await page.locator(".writing-assistance-list li.spelling .writing-assistance-issue")
+        .getAttribute("aria-current") === "true",
+      "Expected the selected issue to be marked as current",
+    );
+    await page.waitForFunction(() =>
+      (document.querySelector(".editor-viewport")?.scrollTop ?? 0) > 0
     );
   }, true);
 });
@@ -341,4 +449,137 @@ Deno.test("browser: menu contains direct manuscript and save actions", async () 
       "Expected a standard borderless menu item",
     );
   });
+});
+
+Deno.test("browser: Desktop menu and F11 toggle fullscreen", async () => {
+  await withEditorPage(async (page) => {
+    await page.evaluate(() => {
+      let fullscreen = false;
+      Object.defineProperty(document, "fullscreenElement", {
+        configurable: true,
+        get: () => fullscreen ? document.documentElement : null,
+      });
+      Object.defineProperty(document.documentElement, "requestFullscreen", {
+        configurable: true,
+        value: () => {
+          fullscreen = true;
+          document.documentElement.dataset.testFullscreen = "true";
+          return Promise.resolve();
+        },
+      });
+      Object.defineProperty(document, "exitFullscreen", {
+        configurable: true,
+        value: () => {
+          fullscreen = false;
+          delete document.documentElement.dataset.testFullscreen;
+          return Promise.resolve();
+        },
+      });
+    });
+
+    await page.locator("#menu-toggle").click();
+    const fullscreen = page.locator("#menu-fullscreen");
+    assert(
+      (await fullscreen.textContent())?.includes("F11"),
+      "Expected the Fullscreen menu item to show its shortcut",
+    );
+    await fullscreen.click();
+    await page.waitForFunction(() => document.documentElement.dataset.testFullscreen === "true");
+
+    await page.locator("#menu-toggle").click();
+    await page.keyboard.press("F11");
+    await page.waitForFunction(() => document.documentElement.dataset.testFullscreen !== "true");
+    assert(
+      await page.locator("#app-menu").getAttribute("hidden") !== null,
+      "Expected F11 to work while the menu is open and close the menu",
+    );
+  }, true);
+});
+
+Deno.test("browser: editor content never mixes text with block siblings", async () => {
+  await withEditorPage(async (page) => {
+    await page.locator(".writing-assistance-sidebar").waitFor({ state: "attached" });
+    await page.keyboard.press("Control+n");
+
+    // Contenteditable routinely produces this shape: a bare text node beside generated
+    // blocks. WebKit lays that text out in an anonymous block box and refuses to paint
+    // ::highlight() ranges inside it, so the editor must normalise it away.
+    await page.locator("#editor").evaluate((element) => {
+      element.innerHTML =
+        "This is teh cat.<div><br></div><div>Another teh dog.<br><p></p><div>A third teh bird.</div></div>";
+      element.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+
+    await page.waitForFunction(() =>
+      document.querySelectorAll(".writing-assistance-list li").length >= 3
+    );
+
+    const stray = await page.locator("#editor").evaluate((element) => {
+      const blocks = new Set([
+        "ADDRESS",
+        "ARTICLE",
+        "ASIDE",
+        "BLOCKQUOTE",
+        "DIV",
+        "DL",
+        "FIELDSET",
+        "FIGURE",
+        "FOOTER",
+        "FORM",
+        "H1",
+        "H2",
+        "H3",
+        "H4",
+        "H5",
+        "H6",
+        "HEADER",
+        "HR",
+        "LI",
+        "MAIN",
+        "NAV",
+        "OL",
+        "P",
+        "PRE",
+        "SECTION",
+        "TABLE",
+        "UL",
+      ]);
+      const offenders: string[] = [];
+      const visit = (node: Element) => {
+        const children = Array.from(node.childNodes);
+        const hasBlock = children.some((child) =>
+          child.nodeType === Node.ELEMENT_NODE && blocks.has((child as Element).tagName)
+        );
+        if (hasBlock) {
+          for (const child of children) {
+            const isBlock = child.nodeType === Node.ELEMENT_NODE &&
+              blocks.has((child as Element).tagName);
+            if (!isBlock) offenders.push(`${node.tagName}>${child.nodeName}`);
+          }
+        }
+        for (const child of children) {
+          if (child.nodeType === Node.ELEMENT_NODE) visit(child as Element);
+        }
+      };
+      visit(element);
+      return offenders;
+    });
+
+    assert(
+      stray.length === 0,
+      `Expected no text or inline nodes beside block siblings, found: ${stray.join(", ")}`,
+    );
+
+    const ranges = await page.evaluate(() => {
+      const out: string[] = [];
+      for (const [, highlight] of CSS.highlights) {
+        for (const range of highlight) out.push((range as Range).toString());
+      }
+      return out;
+    });
+    assert(
+      ranges.filter((text) => text === "teh").length >= 3,
+      `Expected every misspelling to be highlighted, got: ${JSON.stringify(ranges)}`,
+    );
+  }, true);
 });

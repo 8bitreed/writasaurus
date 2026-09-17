@@ -4,7 +4,7 @@ import {
   getDailyWrittenWords,
   getWordsPerPagePreference,
 } from "../../../lib/settings.ts";
-import { editorEvents } from "./editor-events.ts";
+import { editorEvents, toggleWritingAssistancePanel } from "./editor-events.ts";
 import { activeChapter, editorStore, totalWords } from "./state.ts";
 import "./word-count.ts";
 
@@ -88,6 +88,17 @@ export const editorStatusbar = webComponent("editor-statusbar")
         @click=${toggleSidebar}>
         Chapters <kbd>Ctrl+B</kbd>
       </button>
+      ${editorStore.state.isDesktop
+        ? html`
+          <button
+            type="button"
+            aria-label="Toggle writing assistance panel"
+            title="Toggle writing assistance panel (Ctrl+N)"
+            @click=${toggleWritingAssistancePanel}>
+            Writing Assistance <kbd>Ctrl+N</kbd>
+          </button>
+        `
+        : ""}
       <word-count
         chapter-words=${chapter?.wordCount ?? 0}
         total-words=${total}

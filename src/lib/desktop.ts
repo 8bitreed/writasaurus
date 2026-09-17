@@ -58,11 +58,13 @@ export async function chooseFile(
   }
 }
 
-export async function checkIsDesktop(): Promise<boolean> {
+export function checkIsDesktop(): Promise<boolean> {
   try {
-    return Boolean(Deno.env.get("DENO_SERVE_ADDRESS") || Deno.env.get("DENO_DESKTOP"));
+    return Promise.resolve(
+      Boolean(Deno.env.get("DENO_SERVE_ADDRESS") || Deno.env.get("DENO_DESKTOP")),
+    );
   } catch {
-    return false;
+    return Promise.resolve(false);
   }
 }
 
