@@ -1,5 +1,5 @@
-import { createApp } from "./app.ts";
 import "./desktop/desktop.ts";
+import { createApp } from "./app.ts";
 
 const app = await createApp();
 
