@@ -69,6 +69,7 @@ Deno.test("renders settings page with font options and return to editor link", a
   assert(page.includes("Settings"));
   assert(page.includes("Writasaurus"));
   assert(page.includes("Editor Font"));
+  assert(page.includes("Alegreya"));
   assert(page.includes("System Font"));
   assert(page.includes("Standard Serif"));
   assert(page.includes("Standard Sans-Serif"));

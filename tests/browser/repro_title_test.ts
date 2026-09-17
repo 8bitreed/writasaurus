@@ -1,7 +1,7 @@
 import { chromium, type Page } from "playwright";
 import { createApp } from "../../src/app.ts";
 
-async function withEditorPage(test: (page: Page) => Promise<void>): Promise<void> {
+async function _withEditorPage(test: (page: Page) => Promise<void>): Promise<void> {
   const server = Deno.serve({ hostname: "127.0.0.1", port: 0, onListen() {} }, createApp());
   const address = server.addr as Deno.NetAddr;
   const browser = await chromium.launch({

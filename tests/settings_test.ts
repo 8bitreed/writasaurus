@@ -25,6 +25,7 @@ function assertEquals<T>(actual: T, expected: T): void {
 
 Deno.test("settings: font options include system, serif, and sans-serif choices", () => {
   const ids = FONT_OPTIONS.map((f) => f.id);
+  assert(ids.includes("alegreya"));
   assert(ids.includes("system"));
   assert(ids.includes("serif"));
   assert(ids.includes("sans-serif"));
@@ -33,20 +34,22 @@ Deno.test("settings: font options include system, serif, and sans-serif choices"
   assert(ids.includes("arial"));
   assert(ids.includes("helvetica"));
 
-  assertEquals(DEFAULT_FONT, "system");
+  assertEquals(DEFAULT_FONT, "alegreya");
+  assert(FONT_MAP.alegreya.family.includes("Alegreya"));
+  assert(FONT_MAP.alegreya.family.includes("system-ui"));
   assert(FONT_MAP.system.family.includes("system-ui"));
   assert(FONT_MAP.serif.family.includes("serif"));
   assert(FONT_MAP["sans-serif"].family.includes("sans-serif"));
 });
 
-Deno.test("settings: font preference defaults to system when empty", () => {
+Deno.test("settings: font preference defaults to alegreya when empty", () => {
   localStorage.removeItem(SETTINGS_KEY);
-  assertEquals(getFontPreference(), "system");
+  assertEquals(getFontPreference(), "alegreya");
 });
 
 Deno.test("settings: saving and reading font preference round-trips", () => {
   try {
-    const options: FontOption[] = ["system", "arial", "georgia", "times", "sans-serif"];
+    const options: FontOption[] = ["alegreya", "system", "arial", "georgia", "times", "sans-serif"];
     for (const opt of options) {
       saveFontPreference(opt);
       assertEquals(getFontPreference(), opt);

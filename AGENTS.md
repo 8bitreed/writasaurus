@@ -19,13 +19,8 @@ This is a Deno 2 project; use Deno tasks and JSR imports rather than npm tooling
 `dist/` is generated and gitignored. In a clean checkout, run `deno task build` before
 `deno task check` or any test that imports `src/app.ts`.
 
-Run tests directly with the same permissions used by the check task:
-
-```sh
-deno test --allow-read=dist,tests
-deno test --allow-read=dist,tests tests/app_test.ts
-deno test --allow-read=dist,tests --filter "renders editor" tests/app_test.ts
-```
+Only run tests after making changes; never run tests preemptively before changes have been made.
+Always run tests using the `deno task test` command only. Browser tests are included as part of `deno task test` and should run after changes.
 
 When granting permissions, specify the minimal `--allow-*` flags needed (e.g. `--allow-read=...`)
 rather than defaulting to `-A`. Use `deno <subcommand> --help` to verify flags and

@@ -31,14 +31,15 @@ export const settingsView = createView((ctx) => {
               </label>
 
               <select id="font-select" class="settings-select">
-                <optgroup label="System">
-                  <option value="system" selected>System Font</option>
-                </optgroup>
                 <optgroup label="Serif">
+                  <option value="alegreya" selected>Alegreya</option>
                   <option value="serif">Standard Serif</option>
                   <option value="georgia">Georgia</option>
                   <option value="times">Times New Roman</option>
                   <option value="garamond">Garamond</option>
+                </optgroup>
+                <optgroup label="System">
+                  <option value="system">System Font</option>
                 </optgroup>
                 <optgroup label="Sans-Serif">
                   <option value="sans-serif">Standard Sans-Serif</option>

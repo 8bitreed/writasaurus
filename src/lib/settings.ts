@@ -1,4 +1,5 @@
 export type FontOption =
+  | "alegreya"
   | "system"
   | "serif"
   | "georgia"
@@ -18,6 +19,13 @@ export interface FontDefinition {
 }
 
 export const FONT_OPTIONS: FontDefinition[] = [
+  {
+    id: "alegreya",
+    name: "Alegreya",
+    category: "serif",
+    family:
+      '"Alegreya", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+  },
   {
     id: "system",
     name: "System Font",
@@ -86,7 +94,7 @@ export const FONT_MAP: Record<FontOption, FontDefinition> = Object.fromEntries(
   FONT_OPTIONS.map((f) => [f.id, f]),
 ) as Record<FontOption, FontDefinition>;
 
-export const DEFAULT_FONT: FontOption = "system";
+export const DEFAULT_FONT: FontOption = "alegreya";
 export const SETTINGS_KEY = "writasaurus-settings-font";
 
 export const DEFAULT_WORDS_PER_PAGE = 300;

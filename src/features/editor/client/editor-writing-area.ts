@@ -46,7 +46,8 @@ export const editorWritingArea = webComponent("editor-writing-area")
     };
     const onEditorInput = (event: Event) => {
       const target = event.target as HTMLElement | null;
-      if (target?.id === "editor") markChanged(target);
+      const editor = target?.closest<HTMLElement>("#editor");
+      if (editor) markChanged(editor);
     };
 
     return html`
