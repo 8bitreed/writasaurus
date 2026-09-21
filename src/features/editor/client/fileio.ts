@@ -48,7 +48,7 @@ export async function download(manuscript: Manuscript): Promise<void> {
   link.click();
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1_000);
-  markSaved(`Saved to ${filename}`);
+  markSaved(`Saved`);
 }
 
 export const downloadEpub = download;
