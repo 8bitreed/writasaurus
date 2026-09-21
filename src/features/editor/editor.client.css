@@ -572,11 +572,6 @@ editor-canvas {
     white-space: pre-wrap;
 }
 
-.editor-canvas > * + *,
-editor-canvas > * + * {
-    margin-top: 1rem;
-}
-
 ::highlight(writing-assistance-spelling) {
     background: color-mix(in srgb, var(--danger) 24%, transparent);
     text-decoration: underline wavy var(--danger);
