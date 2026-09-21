@@ -41,7 +41,7 @@ export const editorTopbar = webComponent("editor-topbar")
     const title = String(state.manuscript.frontmatter.title ?? "Untitled Manuscript");
     const saveStatus = state.hasUnsavedChanges ? "unsaved" : "saved";
     const saveMessage = state.saveMessage ||
-      (state.hasUnsavedChanges ? "Unsaved changes" : `Saved to ${filename}`);
+      (state.hasUnsavedChanges ? "Unsaved changes" : `Saved`);
     const emitAction = (
       action: "new" | "open" | "save" | "saveAsEpub" | "fullscreen" | "quit",
     ) =>
