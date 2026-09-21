@@ -18,11 +18,11 @@ Deno.test("markdown: preserves paragraph indentation with non-breaking spaces", 
   assert(html.includes("<p>\u00A0\u00A0\u00A0\u00A0Second paragraph.</p>"));
 });
 
-Deno.test("markdown: converts raw tabs to visible 4-space indentation", () => {
+Deno.test("markdown: preserves raw tabs in paragraph content", () => {
   const md = "\tIndented with raw tab.\n\n\tSecond tabbed line.";
   const html = markdownToHtml(md);
   assertEquals(
     html,
-    "<p>\u00A0\u00A0\u00A0\u00A0Indented with raw tab.</p><p>\u00A0\u00A0\u00A0\u00A0Second tabbed line.</p>",
+    "<p>\tIndented with raw tab.</p><p>\tSecond tabbed line.</p>",
   );
 });

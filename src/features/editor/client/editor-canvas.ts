@@ -12,8 +12,7 @@ function handleKeyDown(event: Event): void {
   if (keyboardEvent.key !== "Tab") return;
 
   keyboardEvent.preventDefault();
-  // A raw tab character collapses to a single space under normal CSS whitespace rules.
-  executeEditorCommand("insertText", "\u00A0\u00A0\u00A0\u00A0");
+  executeEditorCommand("insertText", "\t");
   (event.currentTarget as HTMLElement).dispatchEvent(new Event("input", { bubbles: true }));
 }
 

@@ -583,3 +583,18 @@ Deno.test("browser: editor content never mixes text with block siblings", async 
     );
   }, true);
 });
+
+Deno.test("browser: Tab key inserts an actual tab character in the editor", async () => {
+  await withEditorPage(async (page) => {
+    await page.locator("#editor").click();
+    await page.keyboard.press("End");
+    await page.keyboard.press("Tab");
+    await page.keyboard.type("Indented");
+
+    const content = await page.locator("#editor").evaluate((element) => element.textContent);
+    assert(
+      content?.includes("\tIndented"),
+      `Expected content to include raw tab, got ${JSON.stringify(content)}`,
+    );
+  });
+});
