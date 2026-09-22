@@ -25,6 +25,7 @@ import "./editor-toolbar.ts";
 
 type EditorAction = "new" | "open" | "save" | "saveAsEpub" | "fullscreen" | "quit";
 const cleanups = new WeakMap<HTMLElement, () => void>();
+const AUTOSAVE_DEBOUNCE_MS = 1_000;
 
 function ui(root: HTMLElement): {
   sidebar: EditorSidebar;
@@ -36,6 +37,11 @@ function ui(root: HTMLElement): {
   const writingArea = root.querySelector<EditorWritingArea>("editor-writing-area");
   if (!sidebar || !topbar || !writingArea) throw new Error("Editor UI did not render.");
   return { sidebar, topbar, writingArea };
+}
+
+async function autoSave(app: HTMLElement): Promise<void> {
+  if (!state.isDesktop || !state.desktopFileLoaded || !state.hasUnsavedChanges) return;
+  await save(app);
 }
 
 async function save(app: HTMLElement): Promise<void> {
@@ -293,8 +299,18 @@ webComponent("editor-app")
     });
     const unsubscribeSidebar = editorEvents.on("toggleSidebar", () => ui(app).sidebar.toggle());
     // Cache the manuscript so a same-tab reload (e.g. dev watch mode) resumes where it left off.
+    let autosaveTimer: ReturnType<typeof setTimeout> | undefined;
     const unsubscribeSession = editorStore.subscribe(() => {
       saveLocal(state.manuscript, state.activeChapter, state.hasUnsavedChanges);
+      if (state.isDesktop && state.desktopFileLoaded && state.hasUnsavedChanges) {
+        if (autosaveTimer) clearTimeout(autosaveTimer);
+        autosaveTimer = setTimeout(() => {
+          void autoSave(app);
+        }, AUTOSAVE_DEBOUNCE_MS);
+      } else if (autosaveTimer && !state.hasUnsavedChanges) {
+        clearTimeout(autosaveTimer);
+        autosaveTimer = undefined;
+      }
     });
 
     app.addEventListener("editoraction", onAction);
@@ -308,6 +324,7 @@ webComponent("editor-app")
     globalThis.addEventListener("drop", onDrop);
     globalThis.addEventListener("beforeunload", onBeforeUnload);
     cleanups.set(app, () => {
+      if (autosaveTimer) clearTimeout(autosaveTimer);
       unsubscribeCommand();
       unsubscribeSidebar();
       unsubscribeSession();
