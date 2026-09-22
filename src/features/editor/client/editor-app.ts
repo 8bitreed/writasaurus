@@ -10,6 +10,7 @@ import { type EditorTopbar, editorTopbar } from "./editor-topbar.ts";
 import { type EditorWritingArea, editorWritingArea } from "./editor-writing-area.ts";
 import { hasWritePermission, openFile, saveEpubToDisk, saveToDisk } from "./fileio.ts";
 import { editorStore, markChanged, state, syncChapter } from "./state.ts";
+import { editorHistory } from "./history.ts";
 import { isEpubFilename } from "../../../lib/epub.ts";
 import {
   restoreHandle,
@@ -43,12 +44,14 @@ async function save(app: HTMLElement): Promise<void> {
   if (!editor) return;
   syncChapter(editor);
   await saveToDisk();
+  editorHistory.saveCurrentState();
 }
 
 async function saveAsEpub(app: HTMLElement): Promise<void> {
   const editor = ui(app).writingArea.editor;
   if (editor) syncChapter(editor);
   await saveEpubToDisk();
+  editorHistory.saveCurrentState();
 }
 
 async function startNewManuscript(): Promise<void> {
@@ -62,6 +65,7 @@ async function startNewManuscript(): Promise<void> {
     saveMessage: "",
   });
   await storeHandle(null);
+  editorHistory.clear();
 
   if (!state.isDesktop) return;
   try {
@@ -81,6 +85,7 @@ async function openManuscript(app: HTMLElement): Promise<void> {
   await openFile(input, async (file, handle, writable) => {
     // The desktop open route has already loaded its returned manuscript into the editor state.
     if (!state.isDesktop) await loadFile(file, handle, writable);
+    editorHistory.clear();
   });
 }
 
@@ -127,6 +132,7 @@ async function restoreFileHandle(): Promise<boolean> {
       return false;
     }
     await loadFile(file, fileHandle, await hasWritePermission(fileHandle, false));
+    editorHistory.clear();
     return true;
   } catch {
     editorStore.set({ fileHandle: null, canWrite: false });
@@ -156,6 +162,7 @@ async function restoreDesktopFile(): Promise<boolean> {
       hasUnsavedChanges: false,
       desktopFileLoaded: true,
     });
+    editorHistory.clear();
     return true;
   } catch {
     editorStore.set({ isDesktop: false });
@@ -171,6 +178,7 @@ function restoreSession(): boolean {
     activeChapter: saved.activeChapter,
     hasUnsavedChanges: Boolean(saved.hasUnsavedChanges),
   });
+  editorHistory.clear();
   return true;
 }
 
@@ -228,7 +236,18 @@ webComponent("editor-app")
     const onKeyDown = (event: KeyboardEvent) => {
       const modifier = event.ctrlKey || event.metaKey;
       const key = event.key.toLowerCase();
-      if (modifier && key === "b") {
+      if (modifier && key === "z") {
+        if (event.shiftKey) {
+          event.preventDefault();
+          editorEvents.emit("redo", undefined);
+        } else {
+          event.preventDefault();
+          editorEvents.emit("undo", undefined);
+        }
+      } else if (modifier && key === "y") {
+        event.preventDefault();
+        editorEvents.emit("redo", undefined);
+      } else if (modifier && key === "b") {
         event.preventDefault();
         ui(app).sidebar.toggle();
       } else if (modifier && key === "n" && state.isDesktop) {

@@ -8,6 +8,8 @@ export interface EditorEvents {
   };
   focusChapterTitle: undefined;
   toggleSidebar: undefined;
+  undo: undefined;
+  redo: undefined;
 }
 
 export const editorEvents = createEventBus<EditorEvents>();
