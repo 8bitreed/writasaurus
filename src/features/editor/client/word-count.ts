@@ -1,7 +1,14 @@
 import { html, webComponent } from "../../../framework/web-components/index.ts";
+import { editorEvents } from "./editor-events.ts";
+import type { Unsubscribe } from "../../../framework/web-components/index.ts";
+
+const eventSubscriptions = new WeakMap<HTMLElement, Unsubscribe>();
 
 webComponent("word-count")
   .defineState(() => ({ statsIndex: 0 }))
+  .defineMethod("nextStats", (element) => () => {
+    element.state.statsIndex = (element.state.statsIndex + 1) % 3;
+  })
   .defineObservedAttributes<{
     "chapter-words": number;
     "total-words": number;
@@ -17,8 +24,10 @@ webComponent("word-count")
   })
   .defineStyles(/* css */ `
       :host {
-        display: block;
+        align-items: center;
+        display: inline-flex;
         flex-shrink: 1;
+        gap: 0.4rem;
         min-width: 0;
       }
 
@@ -39,6 +48,15 @@ webComponent("word-count")
       .stat:focus-visible {
         outline: 2px solid var(--accent);
         outline-offset: 2px;
+      }
+
+      kbd {
+        background: var(--surface-sunken);
+        border: 1px solid var(--border);
+        border-radius: 0.25rem;
+        color: var(--muted);
+        font-size: 0.65rem;
+        padding: 0.05rem 0.3rem;
       }
     `)
   .defineRender((element) => {
@@ -63,6 +81,7 @@ webComponent("word-count")
       <button
         class="stat"
         type="button"
+        title="Cycle statistics (Ctrl+G)"
         aria-label="Show ${[
           "chapter",
           "manuscript",
@@ -72,6 +91,17 @@ webComponent("word-count")
       >
         ${stats[element.state.statsIndex]}
       </button>
+      <kbd title="Cycle statistics (Ctrl+G)">Ctrl+G</kbd>
     `;
+  })
+  .connectedCallback((element) => {
+    const unsubscribe = editorEvents.on("toggleStats", () => {
+      element.state.statsIndex = (element.state.statsIndex + 1) % 3;
+    });
+    eventSubscriptions.set(element, unsubscribe);
+  })
+  .disconnectedCallback((element) => {
+    eventSubscriptions.get(element)?.();
+    eventSubscriptions.delete(element);
   })
   .create();

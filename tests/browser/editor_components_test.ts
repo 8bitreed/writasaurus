@@ -273,6 +273,18 @@ Deno.test("browser: status bar rotates chapter, manuscript, and daily writing st
       dailyStats === "Daily Goal: 0 / 1,500 words",
       `Expected default daily goal stats, got ${dailyStats}`,
     );
+
+    // Verify Ctrl+G shortcut cycles stats and hint is present
+    const kbdHint = wordCount.locator("kbd");
+    assert(await kbdHint.isVisible(), "Expected Ctrl+G kbd hint to be visible");
+    assert((await kbdHint.textContent())?.trim() === "Ctrl+G", "Expected Ctrl+G text in hint");
+
+    await page.keyboard.press("Control+g");
+    const cycledChapterStats = (await stats.textContent())?.trim();
+    assert(
+      cycledChapterStats?.startsWith("Chapter:"),
+      `Expected Ctrl+G to cycle back to Chapter stats, got ${cycledChapterStats}`,
+    );
   });
 });
 

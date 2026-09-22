@@ -256,6 +256,9 @@ webComponent("editor-app")
       } else if (modifier && key === "b") {
         event.preventDefault();
         ui(app).sidebar.toggle();
+      } else if (modifier && key === "g") {
+        event.preventDefault();
+        editorEvents.emit("toggleStats", undefined);
       } else if (modifier && key === "n" && state.isDesktop) {
         event.preventDefault();
         toggleWritingAssistancePanel();

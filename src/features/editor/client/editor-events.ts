@@ -8,6 +8,7 @@ export interface EditorEvents {
   };
   focusChapterTitle: undefined;
   toggleSidebar: undefined;
+  toggleStats: undefined;
   undo: undefined;
   redo: undefined;
 }
