@@ -8,6 +8,7 @@ import { addChapter, deleteChapter, reorderChapter, selectChapter } from "./acti
 import { editorEvents } from "./editor-events.ts";
 import { editorStore, state } from "./state.ts";
 import { createDragDrop, type DragDropController } from "../../../lib/drag-drop.ts";
+import "../../../lib/ui/app-chip.ts";
 
 export interface EditorSidebar extends WebComponentElement<Record<string, never>> {
   collapsed: boolean;
@@ -101,7 +102,9 @@ export const editorSidebar = webComponent("editor-sidebar")
                   ⋮
                 </button>
                 <span class="chapter-title" @click=${onSelect(index)}>${chapter.title}</span>
-                <small>${chapter.wordCount.toLocaleString()}w</small>
+                <app-chip class="chapter-word-chip" variant="outline">
+                  <small>${chapter.wordCount.toLocaleString()}w</small>
+                </app-chip>
                 <button
                   type="button"
                   class="delete-chapter"

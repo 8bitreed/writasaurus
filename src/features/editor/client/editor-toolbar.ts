@@ -1,5 +1,6 @@
 import { html, webComponent } from "../../../framework/web-components/index.ts";
 import { editorEvents } from "./editor-events.ts";
+import "../../../lib/ui/app-tooltip.ts";
 
 function preserveEditorSelection(event: Event): void {
   const target = event.target as HTMLElement | null;
@@ -76,9 +77,15 @@ webComponent("editor-toolbar")
     `)
   .defineRender(() =>
     html`
-      <button type="button" class="small" data-command="bold"><strong>B</strong></button>
-      <button type="button" class="small" data-command="italic"><em>I</em></button>
-      <button type="button" class="small" data-command="insertUnorderedList">List</button>
+      <app-tooltip content="Bold (Ctrl+B)" position="bottom">
+        <button type="button" class="small" data-command="bold"><strong>B</strong></button>
+      </app-tooltip>
+      <app-tooltip content="Italic (Ctrl+I)" position="bottom">
+        <button type="button" class="small" data-command="italic"><em>I</em></button>
+      </app-tooltip>
+      <app-tooltip content="Bullet List" position="bottom">
+        <button type="button" class="small" data-command="insertUnorderedList">List</button>
+      </app-tooltip>
     `
   )
   .connectedCallback((toolbar) => {

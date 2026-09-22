@@ -4,6 +4,7 @@ import { commitManuscriptTitle, renameManuscript } from "./actions.ts";
 import { editorStore, state } from "./state.ts";
 import type { Unsubscribe } from "../../../framework/web-components/index.ts";
 import "../../../shared/components/save-status.ts";
+import "../../../lib/ui/app-divider.ts";
 
 export type EditorTopbar = HTMLElement & {
   closeMenu(): void;
@@ -81,7 +82,7 @@ export const editorTopbar = webComponent("editor-topbar")
           )}>
             <span>Save As</span>
           </button>
-          <div class="menu-divider"></div>
+          <app-divider></app-divider>
           <button type="button" class="menu-item" id="menu-new-manuscript" @click=${emitAction(
             "new",
           )}>
@@ -92,12 +93,12 @@ export const editorTopbar = webComponent("editor-topbar")
           )}>
             Open Manuscript
           </button>
-          <div class="menu-divider"></div>
+          <app-divider></app-divider>
           <a href="/settings" class="menu-item">Settings</a>
           <a href="/about" class="menu-item">About</a>
           ${state.isDesktop
             ? html`
-              <div class="menu-divider"></div>
+              <app-divider></app-divider>
               <button type="button" class="menu-item" id="menu-fullscreen"
                 @click=${emitAction("fullscreen")}>
                 <span>Fullscreen</span><kbd>F11</kbd>
