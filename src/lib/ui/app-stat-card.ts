@@ -1,5 +1,5 @@
 import { html, webComponent } from "../../framework/web-components/index.ts";
-import "./app-card.component.ts";
+import "./app-card.ts";
 
 export const appStatCard = webComponent("app-stat-card")
   .defineObservedAttributes({
