@@ -4,6 +4,9 @@ import { state } from "../editor/client/state.ts";
 import { saveLocal, setSkipWelcome, storeHandle } from "../editor/client/storage.ts";
 import { registerReturnToEditorShortcut } from "../../lib/shortcuts.ts";
 import { parseEpub } from "../../lib/epub.ts";
+import { applyThemePreference, getThemePreference } from "../../lib/settings.ts";
+
+applyThemePreference(getThemePreference());
 
 try {
   const statusRes = await fetch("/api/editor/status");

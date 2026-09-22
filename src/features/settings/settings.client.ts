@@ -1,8 +1,10 @@
 import {
   applyFontPreference,
+  applyThemePreference,
   type FontOption,
   getDailyWordGoalPreference,
   getFontPreference,
+  getThemePreference,
   getWordsPerPagePreference,
   getWritingAssistancePreference,
   saveDailyWordGoalPreference,
@@ -11,6 +13,8 @@ import {
   saveWritingAssistancePreference,
 } from "../../lib/settings.ts";
 import { registerReturnToEditorShortcut } from "../../lib/shortcuts.ts";
+
+applyThemePreference(getThemePreference());
 
 const fontSelect = document.querySelector<HTMLSelectElement>("#font-select");
 const wordsPerPageInput = document.querySelector<HTMLInputElement>("#words-per-page-input");

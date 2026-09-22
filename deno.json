@@ -39,8 +39,8 @@
     "test:browser": "deno task build && deno test -A tests/browser",
     "test": "deno test --allow-read=dist,tests tests/*_test.ts && deno task test:browser",
     "check": "deno fmt --check && deno lint && deno check src/web.server.ts src/desktop.server.ts src/bundle.ts src/features/editor/editor.client.ts src/features/settings/settings.client.ts && deno task test",
-    "desktop": "deno desktop src/desktop.server.ts --allow-env=HOME,XDG_DATA_HOME,LOCALAPPDATA,APPDATA,DENO_SERVE_ADDRESS --allow-net --allow-read --allow-write --allow-run=zenity,osascript,powershell .",
-    "desktop:dev": "deno task build && deno desktop --hmr --allow-env=HOME,XDG_DATA_HOME,LOCALAPPDATA,APPDATA,PORT,DENO_SERVE_ADDRESS --allow-net --allow-read --allow-write --allow-run=zenity,osascript,powershell src/desktop.server.ts",
+    "desktop": "deno task build && deno desktop --icon=src/assets/static/desktop-icon.png --include dist src/desktop.server.ts --allow-env=HOME,XDG_DATA_HOME,LOCALAPPDATA,APPDATA,PORT,DENO_SERVE_ADDRESS --allow-net --allow-read --allow-write --allow-run=zenity,kdialog,which,osascript,powershell .",
+    "desktop:dev": "deno task build && deno desktop --hmr --icon=src/assets/static/desktop-icon.png --allow-env=HOME,XDG_DATA_HOME,LOCALAPPDATA,APPDATA,PORT,DENO_SERVE_ADDRESS --allow-net --allow-read --allow-write --allow-run=zenity,kdialog,which,osascript,powershell src/desktop.server.ts",
     "dev": "deno task build && deno run --allow-env=PORT --allow-net --allow-read=dist --watch=src/,dist/ src/web.server.ts",
     "dev:assets": "deno run -A src/bundle.ts --watch",
     "start": "deno run --allow-env=PORT --allow-net --allow-read=dist src/web.server.ts"

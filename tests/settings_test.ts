@@ -1,5 +1,6 @@
 import {
   applyFontPreference,
+  applyThemePreference,
   DAILY_WRITING_PROGRESS_KEY,
   DEFAULT_DAILY_WORD_GOAL,
   DEFAULT_FONT,
@@ -10,16 +11,20 @@ import {
   getDailyWordGoalPreference,
   getDailyWrittenWords,
   getFontPreference,
+  getThemePreference,
   getWordsPerPagePreference,
   getWritingAssistancePreference,
   saveDailyWordGoalPreference,
   saveFontPreference,
+  saveThemePreference,
   saveWordsPerPagePreference,
   saveWritingAssistancePreference,
   SETTINGS_DAILY_WORD_GOAL_KEY,
   SETTINGS_KEY,
   SETTINGS_WORDS_PER_PAGE_KEY,
   SETTINGS_WRITING_ASSISTANCE_KEY,
+  THEME_SETTINGS_KEY,
+  type ThemePreference,
 } from "../src/lib/settings.ts";
 
 function assert(condition: unknown, message = "Assertion failed"): asserts condition {
@@ -154,3 +159,34 @@ Deno.test("settings: writing assistance is enabled by default and persists", () 
     localStorage.removeItem(SETTINGS_WRITING_ASSISTANCE_KEY);
   }
 });
+
+Deno.test("settings: theme preference defaults to auto and round-trips", () => {
+  try {
+    localStorage.removeItem(THEME_SETTINGS_KEY);
+    assertEquals(getThemePreference(), "auto");
+
+    const themes: ThemePreference[] = ["light", "dark", "auto"];
+    for (const theme of themes) {
+      saveThemePreference(theme);
+      assertEquals(getThemePreference(), theme);
+    }
+  } finally {
+    localStorage.removeItem(THEME_SETTINGS_KEY);
+  }
+});
+
+Deno.test("settings: invalid stored theme preference falls back to auto", () => {
+  try {
+    localStorage.setItem(THEME_SETTINGS_KEY, "invalid-theme");
+    assertEquals(getThemePreference(), "auto");
+  } finally {
+    localStorage.removeItem(THEME_SETTINGS_KEY);
+  }
+});
+
+Deno.test("settings: applyThemePreference updates data-theme attribute", () => {
+  applyThemePreference("light");
+  applyThemePreference("dark");
+  applyThemePreference("auto");
+});
+

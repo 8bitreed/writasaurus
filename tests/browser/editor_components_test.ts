@@ -439,7 +439,9 @@ Deno.test("browser: toolbar bold command formats the selected editor content", a
 Deno.test("browser: menu contains direct manuscript and save actions", async () => {
   await withEditorPage(async (page) => {
     await page.locator("#menu-toggle").click();
-    await page.waitForSelector("#app-menu:not([hidden])", { state: "visible" });
+    await page.waitForFunction(() =>
+      document.querySelector("#app-menu")?.getAttribute("open") === "true"
+    );
     const menu = page.locator("#app-menu");
     assert(
       (await menu.locator("#menu-save-epub").textContent())?.includes("Save As"),
@@ -459,6 +461,17 @@ Deno.test("browser: menu contains direct manuscript and save actions", async () 
         getComputedStyle(element).borderTopWidth
       ) === "0px",
       "Expected a standard borderless menu item",
+    );
+
+    // Clicking theme segmented control options keeps the menu open
+    await menu.locator('app-segmented-control button[value="dark"]').click();
+    assert(
+      await page.locator("#app-menu").getAttribute("open") === "true",
+      "Expected menu to stay open after toggling theme",
+    );
+    assert(
+      await page.evaluate(() => document.documentElement.dataset.theme),
+      "dark",
     );
   });
 });
@@ -502,7 +515,7 @@ Deno.test("browser: Desktop menu and F11 toggle fullscreen", async () => {
     await page.keyboard.press("F11");
     await page.waitForFunction(() => document.documentElement.dataset.testFullscreen !== "true");
     assert(
-      await page.locator("#app-menu").getAttribute("hidden") !== null,
+      await page.locator("#app-menu").getAttribute("open") === "false",
       "Expected F11 to work while the menu is open and close the menu",
     );
   }, true);
@@ -610,3 +623,31 @@ Deno.test("browser: Tab key inserts an actual tab character in the editor", asyn
     );
   });
 });
+
+Deno.test("browser: theme preference persists across navigation to settings, welcome, and about", async () => {
+  await withEditorPage(async (page) => {
+    // Set theme to dark via dropdown menu
+    await page.locator("#menu-toggle").click();
+    await page.waitForFunction(() =>
+      document.querySelector("#app-menu")?.getAttribute("open") === "true"
+    );
+    await page.locator('#app-menu app-segmented-control button[value="dark"]').click();
+    assert(
+      await page.evaluate(() => document.documentElement.dataset.theme),
+      "dark",
+    );
+
+    // Navigate to /settings
+    await page.goto(new URL("/settings", page.url()).href);
+    await page.waitForFunction(() => document.documentElement.dataset.theme === "dark");
+
+    // Navigate to /welcome
+    await page.goto(new URL("/welcome", page.url()).href);
+    await page.waitForFunction(() => document.documentElement.dataset.theme === "dark");
+
+    // Navigate to /about
+    await page.goto(new URL("/about", page.url()).href);
+    await page.waitForFunction(() => document.documentElement.dataset.theme === "dark");
+  });
+});
+

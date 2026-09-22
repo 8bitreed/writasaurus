@@ -5,6 +5,7 @@ export * from "./inputs/app-datepicker.ts";
 export * from "./inputs/app-form-field.ts";
 export * from "./inputs/app-input.ts";
 export * from "./inputs/app-radio.ts";
+export * from "./inputs/app-segmented-control.ts";
 export * from "./inputs/app-select.ts";
 export * from "./inputs/app-slider.ts";
 export * from "./inputs/app-switch.ts";

@@ -1,5 +1,21 @@
-export function dialogCommand(): string {
-  if (Deno.build.os === "linux") return "zenity";
+export async function dialogCommand(): Promise<string | null> {
+  if (Deno.build.os === "linux") {
+    for (const cmd of ["zenity", "kdialog"]) {
+      try {
+        const perm = await Deno.permissions.query({ name: "run", command: cmd });
+        if (perm.state !== "granted") continue;
+        const res = await new Deno.Command("which", {
+          args: [cmd],
+          stdout: "null",
+          stderr: "null",
+        }).output();
+        if (res.success) return cmd;
+      } catch {
+        // Continue searching
+      }
+    }
+    return "zenity";
+  }
   if (Deno.build.os === "darwin") return "osascript";
   return "powershell";
 }
@@ -10,12 +26,13 @@ export async function chooseFile(
   filterName = "EPUB eBook",
   filterExtensions = ["*.epub"],
 ): Promise<string | null> {
-  const command = dialogCommand();
+  const command = await dialogCommand();
+  if (!command) return null;
   const perm = await Deno.permissions.query({ name: "run", command });
   if (perm.state !== "granted") return null;
 
   let args: string[];
-  if (Deno.build.os === "linux") {
+  if (command === "zenity") {
     const filter = `${filterName} | ${filterExtensions.join(" ")}`;
     args = [
       "--file-selection",
@@ -25,7 +42,12 @@ export async function chooseFile(
         ? ["--save", "--confirm-overwrite", `--filename=${suggestedName}`]
         : []),
     ];
-  } else if (Deno.build.os === "darwin") {
+  } else if (command === "kdialog") {
+    const filter = `${filterExtensions.join(" ")}|${filterName}`;
+    args = action === "open"
+      ? ["--getopenfilename", ".", filter, `--title=Open Manuscript`]
+      : ["--getsavefilename", suggestedName, filter, `--title=Save Manuscript`];
+  } else if (command === "osascript") {
     const script = action === "open"
       ? 'POSIX path of (choose file with prompt "Open Manuscript")'
       : `POSIX path of (choose file name with prompt "Save Manuscript" default name "${

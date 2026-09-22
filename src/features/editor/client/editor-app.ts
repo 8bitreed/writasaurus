@@ -1,5 +1,10 @@
 import { html, webComponent } from "../../../framework/web-components/index.ts";
-import { applyFontPreference, getFontPreference } from "../../../lib/settings.ts";
+import {
+  applyFontPreference,
+  applyThemePreference,
+  getFontPreference,
+  getThemePreference,
+} from "../../../lib/settings.ts";
 import { blankManuscript } from "./data.ts";
 import { loadFile } from "./actions.ts";
 import { executeEditorCommand } from "./editor-commands.ts";
@@ -194,6 +199,7 @@ async function initialize(app: HTMLElement): Promise<void> {
   const opened = desktopOpened || handleOpened || restoreSession();
 
   applyFontPreference(getFontPreference());
+  applyThemePreference(getThemePreference());
   if (!opened && !shouldSkipWelcome()) {
     location.replace("/welcome");
     return;

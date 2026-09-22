@@ -39,7 +39,9 @@ deno task desktop
 ```
 
 Desktop builds are written under `desktop/`. Deno Desktop selects a private loopback port, embeds
-the bundled output, and opens the application in a native webview.
+the bundled output, and opens the application in a native webview. Both desktop tasks pass
+`src/assets/static/desktop-icon.png` through Deno Desktop's `--icon` option; replace that PNG to
+change the packaged app icon.
 
 Check formatting, linting, TypeScript types, and tests:
 
